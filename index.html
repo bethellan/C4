@@ -3792,6 +3792,41 @@ body.game-active .noughtsBoard {
       color: #0d356c;
       user-select: text;
     }
+    body.game-active .gameLayout > section > .statusCard,
+    body.game-active #noughtsStatus,
+    body.game-active .noughtsPlayers .standardTurnStatus {
+      display: none !important;
+    }
+    .gc54MusicToggle {
+      position: fixed;
+      top: max(10px, env(safe-area-inset-top));
+      right: max(10px, env(safe-area-inset-right));
+      z-index: 100500;
+      width: 48px;
+      height: 48px;
+      border-radius: 999px;
+      border: 3px solid rgba(255,255,255,.92);
+      background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(226,239,255,.94));
+      color: #0d356c;
+      box-shadow: 0 12px 28px rgba(16,32,51,.24);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      line-height: 1;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .gc54MusicToggle:hover,
+    .gc54MusicToggle:focus-visible {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 34px rgba(16,32,51,.28);
+      outline: 3px solid rgba(255,216,77,.62);
+      outline-offset: 2px;
+    }
+    body.game-active .gc54MusicToggle {
+      display: inline-flex;
+    }
 
 </style>
   <link rel="icon" type="image/png" sizes="192x192" href="assets/images/app-icon-192.png">
@@ -5122,7 +5157,19 @@ body.game-active .noughtsBoard {
       }
     }
 
+    function isTurnPromptSpeech(eventKey, text) {
+      if (eventKey === 'your-turn' || eventKey === 'still-your-turn' || eventKey === 'your-move') return true;
+      return /^(Your turn|Still your turn|Your move)\b/i.test(String(text || '').trim());
+    }
+
     function setPanelSpeech(piece, text, silent) {
+      if (isTurnPromptSpeech('', text)) {
+        if (state.speech && state.speech.piece === piece && isTurnPromptSpeech('', state.speech.text)) {
+          state.speech = null;
+          renderPlayers();
+        }
+        return;
+      }
       state.speech = { piece, text, silent: !!silent };
       renderPlayers();
     }
@@ -5133,8 +5180,10 @@ body.game-active .noughtsBoard {
         setPanelSpeech(piece, text, true);
         return;
       }
-      state.speech = { piece, text, silent: false };
-      renderPlayers();
+      if (!isTurnPromptSpeech(eventKey, text)) {
+        state.speech = { piece, text, silent: false };
+        renderPlayers();
+      }
       if (!voiceEnabled) return;
       playAudioChoices(buildCharacterAudioChoices(speaker.key, eventKey, targetKey), text);
       scheduleGameTimer(() => {
@@ -6231,10 +6280,6 @@ body.game-active .noughtsBoard {
           ${noughtsPlayerCard(human, 'Player 1', 'xToken', 'X', activeMark === 'X' && !noughtsState.over)}
           ${noughtsPlayerCard(opponent, opponentRole, 'oToken', 'O', activeMark === 'O' && !noughtsState.over)}
         </div>
-        <div class="statusCard standardTurnStatus">
-          <div class="statusTitle">${escapeHtml(statusTitle)}</div>
-          <div class="statusSub">${escapeHtml(statusSub)}</div>
-        </div>
       `;
       el.noughtsBoard.innerHTML = '';
       noughtsState.board.forEach((value, index) => {
@@ -6859,6 +6904,9 @@ assets/audio/granny/watch-this.mp3</pre>
     const pct = Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : 45;
     return pct / 100;
   }
+  function gc54MusicMuted(){
+    return safeGet('gc54MusicMuted', 'off') === 'on';
+  }
   function gc54MusicCandidatePaths(base){
     if (!base) return [];
     if (/\.(mp3|ogg|m4a|webm|mp4|wav)$/i.test(base)) return [base];
@@ -6886,12 +6934,17 @@ assets/audio/granny/watch-this.mp3</pre>
     gc54MusicContext = context || 'menu';
     const mode = gc54MusicMode();
     if (mode === 'off') { gc54StopMusic(); return; }
+    if (gc54MusicMuted()) { gc54StopMusic(); gc54UpdateMusicToggle(); return; }
     if (!gc54MusicUnlocked) return;
     const base = gc54TrackBaseFor(gc54MusicContext);
     const paths = gc54MusicCandidatePaths(base);
     if (!paths.length) { gc54StopMusic(); return; }
-    if (gc54MusicAudio && gc54MusicTrack === paths[0] && !gc54MusicAudio.paused) {
+    if (gc54MusicAudio && gc54MusicTrack === paths[0]) {
       gc54ApplyMusicVolume();
+      if (gc54MusicAudio.paused) {
+        const resumePromise = gc54MusicAudio.play();
+        if (resumePromise && typeof resumePromise.catch === 'function') resumePromise.catch(() => {});
+      }
       return;
     }
     gc54StopMusic();
@@ -6924,6 +6977,13 @@ assets/audio/granny/watch-this.mp3</pre>
     tryPath();
   }
   function gc54UnlockMusic(){
+    if (gc54MusicUnlocked) {
+      if (!gc54MusicMuted() && gc54MusicAudio && gc54MusicAudio.paused) {
+        const resumePromise = gc54MusicAudio.play();
+        if (resumePromise && typeof resumePromise.catch === 'function') resumePromise.catch(() => {});
+      }
+      return;
+    }
     gc54MusicUnlocked = true;
     gc54StartMusic(gc54MusicContext || 'menu');
   }
@@ -6933,11 +6993,47 @@ assets/audio/granny/watch-this.mp3</pre>
     safeSet('gc31MusicMode', next);
     if (next === 'off') gc54StopMusic();
     else gc54StartMusic(gc54MusicContext || 'menu');
+    gc54UpdateMusicToggle();
   }
   function gc54SetMusicVolume(value){
     const pct = Math.max(0, Math.min(100, Number(value) || 45));
     safeSet('gc54MusicVolume', String(pct));
     gc54ApplyMusicVolume();
+    gc54UpdateMusicToggle();
+  }
+  function gc54SetMusicMuted(muted){
+    safeSet('gc54MusicMuted', muted ? 'on' : 'off');
+    if (muted) gc54StopMusic();
+    else gc54StartMusic(gc54MusicContext || 'menu');
+    gc54UpdateMusicToggle();
+  }
+  function gc54UpdateMusicToggle(){
+    const button = document.getElementById('gc54MusicToggle');
+    if (!button) return;
+    const muted = gc54MusicMuted() || gc54MusicMode() === 'off';
+    button.textContent = muted ? '🔇' : '🔊';
+    button.title = muted ? 'Music muted' : 'Music on';
+    button.setAttribute('aria-label', muted ? 'Background music muted. Tap to turn music on.' : 'Background music on. Tap to mute music.');
+    button.setAttribute('aria-pressed', muted ? 'true' : 'false');
+  }
+  function gc54EnsureMusicToggle(){
+    if (!document.body) return null;
+    let button = document.getElementById('gc54MusicToggle');
+    if (!button) {
+      button = document.createElement('button');
+      button.id = 'gc54MusicToggle';
+      button.className = 'gc54MusicToggle';
+      button.type = 'button';
+      button.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        try { gc54UnlockMusic(); } catch(e) {}
+        gc54SetMusicMuted(!gc54MusicMuted());
+      });
+      document.body.appendChild(button);
+    }
+    gc54UpdateMusicToggle();
+    return button;
   }
   function cloneRoute(src){
     const r = src || route || {};
@@ -7612,12 +7708,14 @@ assets/audio/granny/watch-this.mp3</pre>
     document.body.classList.add('gc31-menu-active');
     document.body.classList.remove('gc31-game-active','game-active','gcCleanMenuActive','gc33-find-popup-active','gc31-dots-active');
     hideModal();
+    gc54EnsureMusicToggle();
     gc54StartMusic('menu');
   }
   function showGame(){
     document.body.classList.remove('gc31-menu-active','gcCleanMenuActive');
     document.body.classList.add('gc31-game-active');
     hideModal();
+    gc54EnsureMusicToggle();
     gc54StartMusic('game');
   }
   function render(markup){
