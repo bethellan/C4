@@ -3557,7 +3557,16 @@ body.game-active .noughtsBoard {
       margin-top: clamp(6px, 1vh, 10px) !important;
     }
     body.gc31-dots-active #gc31Root .gc36ScreenHeader {
+      display: flex;
+      align-items: center;
+      gap: clamp(8px, 1.2vw, 14px);
+      flex-wrap: wrap;
       margin-bottom: clamp(4px, .8vh, 8px);
+    }
+    body.gc31-dots-active #gc31Root .gc31Heading {
+      font-size: clamp(1.35rem, 3vw, 2rem);
+      line-height: 1;
+      margin: 0;
     }
     body.gc31-dots-active #gc31Root .gc31Sub {
       display: none !important;
@@ -3567,20 +3576,21 @@ body.game-active .noughtsBoard {
       gap: clamp(8px, 1.4vw, 12px) !important;
     }
     body.gc31-dots-active .gc45DotsScores.standardPlayerCards .standardPlayerCard {
-      padding: clamp(7px, 1.3vw, 11px);
-      gap: 5px;
+      padding: clamp(5px, 1vw, 8px);
+      gap: 3px;
+      min-height: 0;
     }
     body.gc31-dots-active .gc45DotsScores.standardPlayerCards .avatarBubble {
-      width: clamp(54px, 10vw, 82px);
-      height: clamp(54px, 10vw, 82px);
+      width: clamp(38px, 6vw, 52px);
+      height: clamp(38px, 6vw, 52px);
       border-width: 4px;
     }
     body.gc31-dots-active .gc45DotsScores.standardPlayerCards h3 {
-      font-size: clamp(.95rem, 2.8vw, 1.12rem);
+      font-size: clamp(.86rem, 2.3vw, 1rem);
     }
     body.gc31-dots-active .gc45DotsScores.standardPlayerCards .pieceBadge {
-      font-size: clamp(.82rem, 2.2vw, .95rem);
-      padding: 5px 8px;
+      font-size: clamp(.74rem, 2vw, .88rem);
+      padding: 3px 7px;
     }
     @media (max-width: 520px) {
       .standardTurnStatus.statusCard {
@@ -3824,8 +3834,9 @@ body.game-active .noughtsBoard {
       outline: 3px solid rgba(255,216,77,.62);
       outline-offset: 2px;
     }
-    body.game-active .gc54MusicToggle {
-      display: inline-flex;
+    body.game-active .gc54MusicToggle,
+    body.gc31-dots-active .gc54MusicToggle {
+      display: inline-flex !important;
     }
 
 </style>
@@ -5659,12 +5670,11 @@ body.game-active .noughtsBoard {
     }
 
     function playDropClick() {
-      if (voiceEnabled) {
-        const audio = new Audio('assets/audio/effects/drop-click.mp3');
-        audio.volume = 0.55;
-        const playPromise = audio.play();
-        if (playPromise && typeof playPromise.catch === 'function') playPromise.catch(() => {});
-      }
+      if (!voiceEnabled) return;
+      const audio = new Audio('assets/audio/effects/drop-click.mp3');
+      audio.volume = 0.55;
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === 'function') playPromise.catch(() => {});
       playSyntheticClick();
     }
 
@@ -6897,7 +6907,8 @@ assets/audio/granny/watch-this.mp3</pre>
 
   function gc54MusicMode(){
     const mode = safeGet('gc54MusicMode', safeGet('gc31MusicMode', 'off')) || 'off';
-    return GC54_MUSIC_PRESETS[mode] ? mode : 'off';
+    if (mode === 'off') return 'off';
+    return 'mixed';
   }
   function gc54MusicVolume(){
     const raw = Number(safeGet('gc54MusicVolume', '45'));
@@ -6988,12 +6999,20 @@ assets/audio/granny/watch-this.mp3</pre>
     gc54StartMusic(gc54MusicContext || 'menu');
   }
   function gc54SetMusicMode(mode){
-    const next = GC54_MUSIC_PRESETS[mode] ? mode : 'off';
+    const next = mode === 'off' ? 'off' : 'mixed';
     safeSet('gc54MusicMode', next);
     safeSet('gc31MusicMode', next);
     if (next === 'off') gc54StopMusic();
     else gc54StartMusic(gc54MusicContext || 'menu');
     gc54UpdateMusicToggle();
+  }
+  function gc54SetMusicEnabled(enabled){
+    if (enabled) {
+      safeSet('gc54MusicMuted', 'off');
+      gc54SetMusicMode('mixed');
+    } else {
+      gc54SetMusicMuted(true);
+    }
   }
   function gc54SetMusicVolume(value){
     const pct = Math.max(0, Math.min(100, Number(value) || 45));
@@ -7011,6 +7030,9 @@ assets/audio/granny/watch-this.mp3</pre>
     const button = document.getElementById('gc54MusicToggle');
     if (!button) return;
     const muted = gc54MusicMuted() || gc54MusicMode() === 'off';
+    const show = document.body && (document.body.classList.contains('game-active') || document.body.classList.contains('gc31-game-active') || document.body.classList.contains('gc31-dots-active'));
+    if (show) button.style.setProperty('display', 'inline-flex', 'important');
+    else button.style.removeProperty('display');
     button.textContent = muted ? '🔇' : '🔊';
     button.title = muted ? 'Music muted' : 'Music on';
     button.setAttribute('aria-label', muted ? 'Background music muted. Tap to turn music on.' : 'Background music on. Tap to mute music.');
@@ -7028,7 +7050,9 @@ assets/audio/granny/watch-this.mp3</pre>
         event.preventDefault();
         event.stopPropagation();
         try { gc54UnlockMusic(); } catch(e) {}
-        gc54SetMusicMuted(!gc54MusicMuted());
+        const offOrMuted = gc54MusicMode() === 'off' || gc54MusicMuted();
+        if (offOrMuted) gc54SetMusicEnabled(true);
+        else gc54SetMusicMuted(true);
       });
       document.body.appendChild(button);
     }
@@ -7922,11 +7946,12 @@ assets/audio/granny/watch-this.mp3</pre>
     const names = { connect:'Connect Four', cards:'Card Flipping', noughts:'Noughts & Crosses', dots:'Dots & Boxes', find:'Find Grandad', findCharacter:'Find the Character' };
     render(`${screenHeader({ backTarget:'how', stepLabel:'How to play', title:names[which] || 'Game instructions', instruction:'Read the rules below.' })}<div class="gc31Explain">${text[which] || ''}</div>`);
   }
-  function settings(){
+  function settingsLegacy(){
     const text = safeGet('gc31TextSize', safeGet('gcTextSize', 'medium')) || 'medium';
     const sound = safeGet('gc31Sound', safeGet('gcSound', 'on')) || 'on';
     const speakTruth = safeGet('gc33SpeakTruth', 'off') || 'off';
     const musicMode = gc54MusicMode();
+    const musicOn = musicMode !== 'off' && !gc54MusicMuted();
     const musicVolume = String(Math.round(gc54MusicVolume() * 100));
     const musicButtons = [
       ['off', '1. Music Off', 'No background music anywhere.'],
@@ -7934,14 +7959,39 @@ assets/audio/granny/watch-this.mp3</pre>
       ['calm', '3. Calm', 'Softer menu tune and relaxing game loops.'],
       ['mixed', '4. Mixed', 'Menu theme plus different tracks per game.']
     ].map(([key, label, note]) => `<button type="button" data-music="${esc(key)}" class="${musicMode === key ? 'active' : ''}">${esc(label)}<small>${esc(note)}</small></button>`).join('');
-    render(`${screenHeader({ backTarget:'home', title:'Settings', instruction:'Adjust text size, sound, spoken prompts, and background music.' })}<div class="gc31SettingsRow"><h2>Text size</h2><div class="gc31SettingsBtns">
+    render(`${screenHeader({ backTarget:'home', title:'Settings', instruction:'Adjust readability, voices, move sounds, and background music.' })}<div class="gc31SettingsRow"><h2>Text size</h2><div class="gc31SettingsBtns">
       <button type="button" data-text="small" class="${text === 'small' ? 'active' : ''}">Small</button>
       <button type="button" data-text="medium" class="${text === 'medium' ? 'active' : ''}">Medium</button>
       <button type="button" data-text="large" class="${text === 'large' ? 'active' : ''}">Large</button>
-    </div></div><div class="gc31SettingsRow"><h2>Sound effects and voices</h2><div class="gc31SettingsBtns two">
+    </div><p class="gc54MusicNote">Keep this for players who need larger labels and buttons.</p></div><div class="gc31SettingsRow"><h2>Voices and move sounds</h2><div class="gc31SettingsBtns two">
       <button type="button" data-sound="on" class="${sound === 'on' ? 'active' : ''}">On</button>
       <button type="button" data-sound="off" class="${sound === 'off' ? 'active' : ''}">Off</button>
     </div></div><div class="gc31SettingsRow"><h2>Background Music</h2><div class="gc31SettingsBtns">${musicButtons}</div><p class="gc54MusicNote">Music files are optional. If a file is missing, the app simply stays silent and keeps working.</p><div class="gc54MusicFiles">Expected folder: assets/audio/music/<br>menu-cheerful.mp3 · menu-calm.mp3 · game-playful.mp3 · game-calm.mp3 · game-soft.mp3 · game-puzzle.mp3</div></div><div class="gc31SettingsRow"><h2>Music volume</h2><div class="gc31SettingsBtns">
+      <button type="button" data-music-volume="25" class="${musicVolume === '25' ? 'active' : ''}">Low</button>
+      <button type="button" data-music-volume="45" class="${musicVolume === '45' ? 'active' : ''}">Medium</button>
+      <button type="button" data-music-volume="65" class="${musicVolume === '65' ? 'active' : ''}">High</button>
+    </div></div><div class="gc31SettingsRow"><h2>Speak the Truth</h2><div class="gc31SettingsBtns two">
+      <button type="button" data-speak-truth="on" class="${speakTruth === 'on' ? 'active' : ''}">On</button>
+      <button type="button" data-speak-truth="off" class="${speakTruth !== 'on' ? 'active' : ''}">Off</button>
+    </div></div>`);
+  }
+  function settings(){
+    const text = safeGet('gc31TextSize', safeGet('gcTextSize', 'medium')) || 'medium';
+    const sound = safeGet('gc31Sound', safeGet('gcSound', 'on')) || 'on';
+    const speakTruth = safeGet('gc33SpeakTruth', 'off') || 'off';
+    const musicOn = gc54MusicMode() !== 'off' && !gc54MusicMuted();
+    const musicVolume = String(Math.round(gc54MusicVolume() * 100));
+    render(`${screenHeader({ backTarget:'home', title:'Settings', instruction:'Adjust readability, voices, move sounds, and background music.' })}<div class="gc31SettingsRow"><h2>Text size</h2><div class="gc31SettingsBtns">
+      <button type="button" data-text="small" class="${text === 'small' ? 'active' : ''}">Small</button>
+      <button type="button" data-text="medium" class="${text === 'medium' ? 'active' : ''}">Medium</button>
+      <button type="button" data-text="large" class="${text === 'large' ? 'active' : ''}">Large</button>
+    </div><p class="gc54MusicNote">Keep this for players who need larger labels and buttons.</p></div><div class="gc31SettingsRow"><h2>Voices and move sounds</h2><div class="gc31SettingsBtns two">
+      <button type="button" data-sound="on" class="${sound === 'on' ? 'active' : ''}">On</button>
+      <button type="button" data-sound="off" class="${sound === 'off' ? 'active' : ''}">Off</button>
+    </div><p class="gc54MusicNote">Controls character voices and move/drop sounds. Background music has its own switch.</p></div><div class="gc31SettingsRow"><h2>Background music</h2><div class="gc31SettingsBtns two">
+      <button type="button" data-music-enabled="on" class="${musicOn ? 'active' : ''}">On</button>
+      <button type="button" data-music-enabled="off" class="${!musicOn ? 'active' : ''}">Off</button>
+    </div><p class="gc54MusicNote">One menu tune and one loop for each game. If a file is missing, the app stays silent and keeps working.</p><div class="gc54MusicFiles">Expected folder: assets/audio/music/<br>menu-cheerful.mp3 · game-playful.mp3 · game-calm.mp3 · game-soft.mp3 · game-puzzle.mp3</div></div><div class="gc31SettingsRow"><h2>Music volume</h2><div class="gc31SettingsBtns">
       <button type="button" data-music-volume="25" class="${musicVolume === '25' ? 'active' : ''}">Low</button>
       <button type="button" data-music-volume="45" class="${musicVolume === '45' ? 'active' : ''}">Medium</button>
       <button type="button" data-music-volume="65" class="${musicVolume === '65' ? 'active' : ''}">High</button>
@@ -8254,14 +8304,17 @@ assets/audio/granny/watch-this.mp3</pre>
     }
     const viewportWidth = Math.max(320, window.innerWidth || 900);
     const viewportHeight = Math.max(520, window.innerHeight || 800);
-    const reservedHeight = Math.min(310, Math.max(225, viewportHeight * 0.29));
-    const availableWidth = Math.max(280, viewportWidth * 0.96 - 28);
-    const availableHeight = Math.max(260, viewportHeight - reservedHeight);
+    const reservedHeight = Math.min(275, Math.max(195, viewportHeight * 0.23));
+    const availableWidth = Math.max(300, viewportWidth * 0.985 - 16);
+    const availableHeight = Math.max(290, viewportHeight - reservedHeight);
     const edgeSlots = size + 1;
     const edgeTouchTarget = 44;
     const boxLimitByWidth = (availableWidth - edgeSlots * edgeTouchTarget) / size;
     const boxLimitByHeight = (availableHeight - edgeSlots * edgeTouchTarget) / size;
-    const maxBoxSize = viewportHeight < 940 ? 64 : 72;
+    const levelKey = dotsState.levelKey || route.dotsDifficulty || 'medium';
+    const desktopMaxByLevel = levelKey === 'small' ? 100 : (levelKey === 'medium' ? 76 : 64);
+    const compactMaxByLevel = levelKey === 'small' ? 82 : (levelKey === 'medium' ? 68 : 54);
+    const maxBoxSize = viewportHeight < 720 ? compactMaxByLevel : desktopMaxByLevel;
     const boxSize = Math.max(28, Math.min(maxBoxSize, Math.floor(Math.min(boxLimitByWidth, boxLimitByHeight))));
     const p1Score = dotsScore('p1');
     const p2Score = dotsScore('p2');
@@ -8412,6 +8465,7 @@ assets/audio/granny/watch-this.mp3</pre>
     showMenu();
     gc54StartMusic('game');
     document.body.classList.add('gc31-dots-active');
+    gc54EnsureMusicToggle();
     dotsState = createDotsState();
     preloadMenuAndGameIcons([route.player, route.opponent]);
     renderDotsGame();
@@ -8543,6 +8597,7 @@ assets/audio/granny/watch-this.mp3</pre>
       if (btn.dataset.explain) return explain(btn.dataset.explain);
       if (btn.dataset.text) { safeSet('gc31TextSize', btn.dataset.text); safeSet('gcTextSize', btn.dataset.text); applyPrefs(); return settings(); }
       if (btn.dataset.sound) { safeSet('gc31Sound', btn.dataset.sound); safeSet('gcSound', btn.dataset.sound); applyPrefs(); return settings(); }
+      if (btn.dataset.musicEnabled) { gc54SetMusicEnabled(btn.dataset.musicEnabled === 'on'); return settings(); }
       if (btn.dataset.music) { gc54SetMusicMode(btn.dataset.music); return settings(); }
       if (btn.dataset.musicVolume) { gc54SetMusicVolume(btn.dataset.musicVolume); return settings(); }
       if (btn.dataset.speakTruth) { safeSet('gc33SpeakTruth', btn.dataset.speakTruth === 'on' ? 'on' : 'off'); return settings(); }
