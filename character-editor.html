@@ -1,0 +1,673 @@
+<!doctype html>
+<!--
+Copyright © Andrew Bethell. All rights reserved.
+Developed by Andrew Bethell in his own time and at his own expense.
+
+Educational simulation tool. Not for clinical decision-making.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="copyright" content="Copyright © Andrew Bethell. All rights reserved.">
+  <title>Grandad Connect Character Editor v2</title>
+  <script src="data/voice-catalog.js"></script>
+  <style>
+    :root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#102033;background:#eaf2fb;--blue:#0b4aa2;--line:#9dbbd8;--panel:#fff}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(180deg,#f7fbff,#eaf2fb)}
+    button,input,select,textarea{font:inherit}button{min-height:48px;border:2px solid #073b7c;border-radius:14px;background:#fff;color:#073b7c;font-weight:800;padding:9px 14px;cursor:pointer}
+    button.primary{background:#0f5fc4;color:#fff}button.danger{border-color:#b42318;color:#8f1d14}button:disabled{opacity:.45;cursor:default}
+    .app{max-width:1600px;margin:auto;padding:16px}.top{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+    h1{margin:0;font-size:clamp(1.8rem,4vw,3rem)}.muted{color:#51647a}.status{padding:11px 14px;border-radius:14px;background:#edf6ff;border:2px solid #bfd2e8;font-weight:700}
+    .panel{background:var(--panel);border:2px solid var(--line);border-radius:20px;padding:14px;box-shadow:0 8px 22px rgba(16,32,51,.08)}
+    .toolbar{display:flex;gap:9px;flex-wrap:wrap}.workflowBar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;padding:10px;border:2px solid var(--line);border-radius:16px;background:rgba(255,255,255,.97);box-shadow:0 7px 18px rgba(16,32,51,.1)}.workflowIdentity{display:flex;align-items:center;gap:10px;min-width:0}.workflowAvatar{width:44px;height:44px;border-radius:11px;overflow:hidden;object-fit:cover;background:#dbeafe}.workflowAvatar img{width:100%;height:100%;object-fit:cover}.workflowText{min-width:0}.workflowText strong,.workflowText small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.taskMenu{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.taskMenu button{min-height:40px;padding:7px 12px}.taskMenu button.active{background:#0f5fc4;color:#fff}.taskMenu button:disabled{display:none}
+    .view{display:none}.view.active{display:block}.selectionLayout{display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);gap:14px;align-items:start}.list{display:grid;gap:8px;max-height:68vh;overflow:auto;margin-top:12px}
+    .person{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center;width:100%;text-align:left}
+    .person.active{background:#edf6ff;border-color:#0f5fc4}.person img,.avatarFallback{width:56px;height:56px;border-radius:13px;object-fit:cover;background:#dbeafe;display:grid;place-items:center}
+    .taskChoices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}.taskChoice{min-height:116px;display:grid;align-content:center;gap:5px;text-align:left}.taskChoice strong{font-size:1.06rem}.taskChoice span{font-weight:600;color:#51647a}.taskChoice:disabled{display:none}
+    .viewHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}.detailsLayout{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,340px);gap:14px;align-items:start}.imagePaths{display:grid;gap:12px}.currentImage{display:grid;grid-template-columns:92px 1fr;gap:12px;align-items:center}.currentImage img,.currentImage .avatarFallback{width:92px;height:92px;border-radius:16px;object-fit:cover}
+    .person small{display:block;color:#51647a}.form{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:grid;gap:5px}.field.full{grid-column:1/-1}
+    label{font-weight:800}input,select,textarea{width:100%;border:2px solid #bfd2e8;border-radius:12px;padding:10px;background:#fff;color:#102033}
+    textarea{min-height:76px;resize:vertical}.checks{display:grid;grid-template-columns:1fr 1fr;gap:7px}.check{display:flex;align-items:center;gap:8px;font-weight:700}.check input{width:auto}
+    .paths{font-family:ui-monospace,Consolas,monospace;font-size:.84rem;overflow-wrap:anywhere;background:#f5f8fc;padding:9px;border-radius:10px}
+    .imageEditors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}.imageEditor{min-width:0}.imageEditor h3{margin:0}.cropShell{height:min(43vw,520px);min-height:330px;background:#101827;border-radius:18px;display:grid;place-items:center;overflow:hidden;touch-action:none}
+    .cropCanvas{max-width:100%;max-height:100%;display:block;touch-action:none;cursor:grab}.previewRow{display:grid;grid-template-columns:112px 1fr;gap:12px;align-items:center;margin-top:12px}
+    .previewCanvas{width:112px;height:112px;border-radius:18px;border:4px solid #fff;box-shadow:0 7px 20px rgba(0,0,0,.18);background:#dbeafe}
+    .cropControls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.fileInfo{font-weight:800;color:#40556e}
+    .warning{background:#fff7ed;border:2px solid #fdba74;border-radius:14px;padding:10px}.footer{margin:18px 0;text-align:center;color:#51647a;font-size:.9rem}
+    .voiceSummary{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}.voiceStat{padding:7px 10px;border-radius:999px;background:#edf6ff;border:1px solid #bfd2e8;font-weight:800}
+    .voiceColumns{display:grid;grid-template-columns:1fr 1fr;gap:14px}.voiceList{display:grid;gap:7px}.voiceRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px;border:1px solid #bfd2e8;border-radius:12px;background:#f8fbff}
+    .voiceRow strong,.voiceRow small{display:block}.voiceRow small{color:#51647a}.voiceActions{display:flex;gap:7px;align-items:center}.voiceBadge{border-radius:999px;padding:5px 9px;font-size:.78rem;font-weight:900;white-space:nowrap}.voiceBadge.found{background:#dcfce7;color:#166534}.voiceBadge.missing{background:#fee2e2;color:#991b1b}.voiceBadge.waiting{background:#e5e7eb;color:#475569}.voicePreview{min-height:36px;padding:5px 10px;border-radius:10px}
+    #voicePlayback{width:100%;margin-top:12px}.voicePath{font-family:ui-monospace,Consolas,monospace;font-size:.78rem;overflow-wrap:anywhere}
+    dialog{width:min(760px,calc(100vw - 24px));border:2px solid var(--line);border-radius:22px;padding:0;color:#102033;background:#fff;box-shadow:0 28px 90px rgba(16,32,51,.35)}
+    dialog::backdrop{background:rgba(8,25,48,.66);backdrop-filter:blur(4px)}.recordDialogInner{padding:20px;display:grid;gap:14px}.recordPrompt{padding:18px;border-radius:16px;background:#edf6ff;border:2px solid #bfd2e8;text-align:center}
+    .recordPrompt strong{display:block;font-size:clamp(1.35rem,4vw,2.1rem);margin-bottom:7px}.recordStatus{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.recordDot{width:14px;height:14px;border-radius:50%;background:#94a3b8}.recordDot.live{background:#dc2626;box-shadow:0 0 0 7px rgba(220,38,38,.14)}.recordTimer{font-weight:900;font-variant-numeric:tabular-nums}.recordButtons{display:flex;gap:9px;flex-wrap:wrap}
+    @media(max-width:1100px){.imageEditors{grid-template-columns:1fr}.cropShell{height:min(68vw,560px)}.detailsLayout{grid-template-columns:1fr}.taskChoices{grid-template-columns:1fr}}
+    @media(max-width:720px){.workflowBar{position:static;align-items:stretch;flex-direction:column}.taskMenu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));justify-content:stretch}.selectionLayout,.voiceColumns{grid-template-columns:1fr}.form,.checks,.cropControls{grid-template-columns:1fr}.list{max-height:360px}.cropShell{height:52vh;min-height:300px}.voiceRow{grid-template-columns:1fr}.voiceActions{justify-content:space-between}.currentImage{grid-template-columns:72px 1fr}.currentImage img,.currentImage .avatarFallback{width:72px;height:72px}}
+  </style>
+</head>
+<body>
+<main class="app">
+  <header class="top">
+    <div>
+      <h1>Character Editor</h1>
+      <div class="muted">Manage roster details and optimized images without enlarging the game file.</div>
+    </div>
+    <div class="toolbar">
+      <button id="chooseProject" class="primary" type="button">Choose game folder</button>
+      <button id="exportManifest" type="button">Export manifest</button>
+    </div>
+  </header>
+  <div id="status" class="status">Choose the unzipped Grandad Connect game folder. Direct saving requires Edge or Chrome.</div>
+
+  <nav class="workflowBar" aria-label="Character editor workflow">
+    <div class="workflowIdentity">
+      <div id="workflowAvatar" class="workflowAvatar avatarFallback">?</div>
+      <div class="workflowText">
+        <strong id="workflowCharacter">No character selected</strong>
+        <small id="workflowFolder">Choose a game folder to begin</small>
+      </div>
+    </div>
+    <div class="taskMenu">
+      <button id="chooseCharacterView" type="button" disabled>Characters</button>
+      <button id="detailsViewButton" type="button" disabled>Details</button>
+      <button id="imagesViewButton" type="button" disabled>Images</button>
+      <button id="voiceViewButton" type="button" disabled>Voice</button>
+    </div>
+  </nav>
+
+  <section id="selectionView" class="view active">
+    <div class="selectionLayout">
+      <aside class="panel">
+        <div class="toolbar">
+          <button id="addPerson" class="primary" type="button" disabled>Add person</button>
+          <button id="saveManifest" type="button" disabled>Save all changes</button>
+        </div>
+        <div id="characterList" class="list"></div>
+      </aside>
+      <section class="panel">
+        <h2 id="selectionHeading">Choose a character</h2>
+        <p class="muted">Select an existing character or add a new person, then choose the part you want to edit.</p>
+        <div class="taskChoices">
+          <button id="selectionDetails" class="taskChoice" type="button" disabled><strong>Character details</strong><span>Name, role, game inclusion and difficulty.</span></button>
+          <button id="selectionImages" class="taskChoice" type="button" disabled><strong>Images</strong><span>Crop and optimize the normal avatar and card-flip portrait.</span></button>
+          <button id="selectionVoice" class="taskChoice" type="button" disabled><strong>Voice recordings</strong><span>Review, record, replace and save voice clips.</span></button>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <section id="detailsView" class="view">
+    <div class="viewHeader"><div><h2>Character details</h2><p class="muted">Apply edits here, then use Save all changes to write them to the selected game folder.</p></div><button class="backToCharacters" type="button">Back to characters</button></div>
+    <div class="detailsLayout">
+      <section class="panel">
+        <div class="form">
+          <div class="field"><label for="key">Key / folder name</label><input id="key" autocomplete="off"></div>
+          <div class="field"><label for="name">Display name</label><input id="name" autocomplete="off"></div>
+          <div class="field"><label for="occupation">Occupation / character role</label><input id="occupation" placeholder="Astronaut"></div>
+          <div class="field"><label for="initials">Initials</label><input id="initials" maxlength="3"></div>
+          <div class="field"><label for="gender">Gender profile</label><select id="gender"><option>neutral</option><option>female</option><option>male</option></select></div>
+          <div class="field"><label for="ageGroup">Age group</label><select id="ageGroup"><option>adult</option><option>child</option><option>computer</option></select></div>
+          <div class="field"><label for="group">Group</label><select id="group"><option>Core Family</option><option>Children</option><option>Extended Family</option><option>Special</option><option>Other</option></select></div>
+          <div class="field"><label for="difficultyLabel">Card label</label><input id="difficultyLabel" placeholder="Hard"></div>
+          <div class="field"><label for="connectDifficulty">Connect Four skill</label><select id="connectDifficulty"></select></div>
+          <div class="field"><label for="noughtsDifficulty">Noughts skill</label><select id="noughtsDifficulty"></select></div>
+          <div class="field full"><label for="personality">Description</label><textarea id="personality"></textarea></div>
+          <div class="field full">
+            <label>Included in</label>
+            <div class="checks">
+              <label class="check"><input id="includeHuman" type="checkbox"> Player selection</label>
+              <label class="check"><input id="includeComputer" type="checkbox"> Computer opponents</label>
+              <label class="check"><input id="includeMemory" type="checkbox"> Card Flipping</label>
+              <label class="check"><input id="includeChallenge" type="checkbox"> Family Challenge</label>
+            </div>
+          </div>
+        </div>
+        <div class="toolbar" style="margin-top:12px">
+          <button id="applyDetails" class="primary" type="button">Apply details</button>
+          <button id="removePerson" class="danger" type="button">Remove person</button>
+        </div>
+      </section>
+      <aside class="panel imagePaths">
+        <h3>Current image files</h3>
+        <div class="currentImage"><div id="normalCurrentPreview" class="avatarFallback">?</div><div><strong>Normal avatar</strong><div id="normalPath" class="paths">Not set</div><button id="removeNormal" class="danger" type="button" disabled>Remove normal image</button></div></div>
+        <div class="currentImage"><div id="cardflipCurrentPreview" class="avatarFallback">?</div><div><strong>Card-flip / Find Character</strong><div id="cardflipPath" class="paths">Not set</div><button id="removeCardflip" class="danger" type="button" disabled>Remove card-flip image</button></div></div>
+        <p class="warning"><strong>Professor Pixel is protected.</strong> Removing another person updates the roster when you save. Image-file deletion is confirmed separately.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section id="imagesView" class="view">
+    <div class="viewHeader"><div><h2>Crop and optimize images</h2><p class="muted">Each image has independent crop, zoom, format, size and quality controls.</p></div><button class="backToCharacters" type="button">Back to characters</button></div>
+    <div class="imageEditors">
+      <section class="panel imageEditor">
+        <h3>Normal avatar</h3>
+        <p class="muted">Used in menus, player cards and Find Grandad.</p>
+        <div class="toolbar">
+          <input id="imageInput" type="file" accept="image/*" hidden>
+          <button id="chooseImageButton" type="button">Load new image</button>
+          <button id="loadNormal" type="button" disabled>Load current avatar</button>
+          <button id="fillCrop" type="button">Fill crop</button>
+        </div>
+        <div class="cropShell" id="cropShell"><canvas id="cropCanvas" class="cropCanvas" width="700" height="700"></canvas></div>
+        <div class="cropControls">
+          <div class="field"><label for="zoom">Zoom</label><input id="zoom" type="range" min="1" max="4" step="0.01" value="1"></div>
+          <div class="field"><label for="outputSize">Output size</label><select id="outputSize"><option value="512">512 x 512</option><option value="800" selected>800 x 800 recommended</option><option value="1024">1024 x 1024</option></select></div>
+          <div class="field"><label for="format">Format</label><select id="format"><option value="image/webp" selected>WebP recommended</option><option value="image/jpeg">JPEG</option><option value="image/png">PNG</option></select></div>
+          <div class="field"><label for="quality">Quality <span id="qualityValue">84%</span></label><input id="quality" type="range" min="0.55" max="0.95" step="0.01" value="0.84"></div>
+        </div>
+        <div class="previewRow"><canvas id="previewCanvas" class="previewCanvas" width="800" height="800"></canvas><div><div id="fileInfo" class="fileInfo">No image loaded.</div><p class="muted">Recommended: 800 x 800 WebP at 84%.</p></div></div>
+        <div class="toolbar" style="margin-top:12px"><button id="saveNormal" class="primary" type="button" disabled>Save to avatar folder</button><button id="downloadImage" type="button" disabled>Download avatar</button></div>
+      </section>
+
+      <section class="panel imageEditor">
+        <h3>Card-flip image</h3>
+        <p class="muted">Used in Card Flipping and Find the Character.</p>
+        <div class="toolbar">
+          <input id="cardImageInput" type="file" accept="image/*" hidden>
+          <button id="chooseCardImageButton" type="button">Load new image</button>
+          <button id="loadCardflip" type="button" disabled>Load current card image</button>
+          <button id="fillCardCrop" type="button">Fill crop</button>
+        </div>
+        <div class="cropShell" id="cardCropShell"><canvas id="cardCropCanvas" class="cropCanvas" width="700" height="700"></canvas></div>
+        <div class="cropControls">
+          <div class="field"><label for="cardZoom">Zoom</label><input id="cardZoom" type="range" min="1" max="4" step="0.01" value="1"></div>
+          <div class="field"><label for="cardOutputSize">Output size</label><select id="cardOutputSize"><option value="512">512 x 512</option><option value="800" selected>800 x 800 recommended</option><option value="1024">1024 x 1024</option></select></div>
+          <div class="field"><label for="cardFormat">Format</label><select id="cardFormat"><option value="image/webp" selected>WebP recommended</option><option value="image/jpeg">JPEG</option><option value="image/png">PNG</option></select></div>
+          <div class="field"><label for="cardQuality">Quality <span id="cardQualityValue">84%</span></label><input id="cardQuality" type="range" min="0.55" max="0.95" step="0.01" value="0.84"></div>
+        </div>
+        <div class="previewRow"><canvas id="cardPreviewCanvas" class="previewCanvas" width="800" height="800"></canvas><div><div id="cardFileInfo" class="fileInfo">No image loaded.</div><p class="muted">This editor is independent of the normal avatar crop.</p></div></div>
+        <div class="toolbar" style="margin-top:12px"><button id="saveCardflip" class="primary" type="button" disabled>Save to card-flip folder</button><button id="downloadCardImage" type="button" disabled>Download card image</button></div>
+      </section>
+    </div>
+  </section>
+
+  <section id="voiceView" class="view">
+    <div class="viewHeader"><div><h2>Voice recordings</h2><div id="voiceHeading" class="muted">Choose the game folder to scan recordings.</div></div><div class="toolbar"><button id="refreshVoiceInventory" type="button" disabled>Refresh voice inventory</button><button class="backToCharacters" type="button">Back to characters</button></div></div>
+    <section class="panel">
+      <div id="voiceSummary" class="voiceSummary"></div>
+      <div class="voiceColumns">
+        <section><h3>Selected character</h3><div id="characterVoiceList" class="voiceList"></div></section>
+        <section><h3>Narrator and name clips</h3><div id="narratorVoiceList" class="voiceList"></div></section>
+      </div>
+      <audio id="voicePlayback" controls></audio>
+      <p class="muted">Recordings save directly into the selected project folder. Replacing an existing clip requires confirmation.</p>
+    </section>
+  </section>
+  <dialog id="recordDialog">
+    <div class="recordDialogInner">
+      <div><strong id="recordTitle">Record voice clip</strong><div id="recordTarget" class="voicePath"></div></div>
+      <div class="recordPrompt"><strong id="recordPhrase"></strong><span id="recordHint" class="muted"></span></div>
+      <div class="recordStatus"><span id="recordDot" class="recordDot"></span><strong id="recordStatus">Ready to record</strong><span id="recordTimer" class="recordTimer">00:00</span></div>
+      <audio id="recordPlayback" controls></audio>
+      <div class="recordButtons">
+        <button id="recordStart" class="danger" type="button">Record</button>
+        <button id="recordStop" type="button" disabled>Stop</button>
+        <button id="recordPlay" type="button" disabled>Play back</button>
+        <button id="recordRedo" type="button" disabled>Record again</button>
+      </div>
+      <div class="recordButtons">
+        <button id="recordSave" class="primary" type="button" disabled>Save recording</button>
+        <button id="recordCancel" type="button">Cancel</button>
+      </div>
+    </div>
+  </dialog>
+  <footer class="footer">
+    Copyright © Andrew Bethell. All rights reserved.<br>
+    Developed by Andrew Bethell in his own time and at his own expense.<br><br>
+    Educational simulation tool. Not for clinical decision-making.
+  </footer>
+</main>
+<script>
+(() => {
+  'use strict';
+  const difficultyOptions = ['Easy','Easy-Medium','Medium','Medium-Hard','Hard','Expert','Extreme','Extreme Max'];
+  const $ = id => document.getElementById(id);
+  const els = Object.fromEntries([
+    'chooseProject','exportManifest','addPerson','saveManifest','characterList','selectionView','detailsView','imagesView','voiceView','chooseCharacterView','detailsViewButton','imagesViewButton','voiceViewButton','selectionDetails','selectionImages','selectionVoice','selectionHeading','workflowAvatar','workflowCharacter','workflowFolder','normalCurrentPreview','cardflipCurrentPreview',
+    'key','name','occupation','initials','gender','ageGroup','group','difficultyLabel','connectDifficulty','noughtsDifficulty','personality',
+    'includeHuman','includeComputer','includeMemory','includeChallenge','normalPath','cardflipPath','removeNormal','removeCardflip','applyDetails','removePerson','imageInput','chooseImageButton','loadNormal','loadCardflip','fillCrop',
+    'cropShell','cropCanvas','zoom','outputSize','format','quality','qualityValue','previewCanvas','fileInfo','saveNormal','downloadImage',
+    'cardImageInput','chooseCardImageButton','fillCardCrop','cardCropShell','cardCropCanvas','cardZoom','cardOutputSize','cardFormat','cardQuality','cardQualityValue','cardPreviewCanvas','cardFileInfo','saveCardflip','downloadCardImage','status',
+    'refreshVoiceInventory','voiceHeading','voiceSummary','characterVoiceList','narratorVoiceList','voicePlayback',
+    'recordDialog','recordTitle','recordTarget','recordPhrase','recordHint','recordDot','recordStatus','recordTimer','recordPlayback','recordStart','recordStop','recordPlay','recordRedo','recordSave','recordCancel'
+  ].map(id => [id,$(id)]));
+  difficultyOptions.forEach(value => {
+    els.connectDifficulty.add(new Option(value,value));
+    els.noughtsDifficulty.add(new Option(value,value));
+  });
+  const state = {
+    root:null, manifest:{version:2,notes:'Grandad Connect authoritative character manifest. Managed by character-editor.html.',characters:[]},
+    selectedKey:null, activeView:'selection',
+    voiceScanToken:0, voicePreviewUrl:'', recordItem:null, recorder:null, recordStream:null, recordChunks:[],
+    recordedBlob:null, recordedUrl:'', recordTimerId:null, recordStartedAt:0, recordMimeType:'audio/webm', recordExtension:'webm', discardRecording:false
+  };
+  function createCropEditor(kind,ids){
+    return {
+      kind,img:null,imgName:'',scale:1,baseScale:1,x:350,y:350,dragging:false,lastX:0,lastY:0,
+      canvas:els[ids.canvas],preview:els[ids.preview],input:els[ids.input],choose:els[ids.choose],load:els[ids.load],fill:els[ids.fill],
+      zoom:els[ids.zoom],outputSize:els[ids.outputSize],format:els[ids.format],quality:els[ids.quality],qualityValue:els[ids.qualityValue],
+      fileInfo:els[ids.fileInfo],save:els[ids.save],download:els[ids.download],
+      ctx:els[ids.canvas].getContext('2d'),previewCtx:els[ids.preview].getContext('2d')
+    };
+  }
+  const cropEditors = {
+    normal:createCropEditor('normal',{canvas:'cropCanvas',preview:'previewCanvas',input:'imageInput',choose:'chooseImageButton',load:'loadNormal',fill:'fillCrop',zoom:'zoom',outputSize:'outputSize',format:'format',quality:'quality',qualityValue:'qualityValue',fileInfo:'fileInfo',save:'saveNormal',download:'downloadImage'}),
+    cardflip:createCropEditor('cardflip',{canvas:'cardCropCanvas',preview:'cardPreviewCanvas',input:'cardImageInput',choose:'chooseCardImageButton',load:'loadCardflip',fill:'fillCardCrop',zoom:'cardZoom',outputSize:'cardOutputSize',format:'cardFormat',quality:'cardQuality',qualityValue:'cardQualityValue',fileInfo:'cardFileInfo',save:'saveCardflip',download:'downloadCardImage'})
+  };
+
+  function setStatus(message){ els.status.textContent = message; }
+  function slug(value){ return String(value||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,''); }
+  function selected(){ return state.manifest.characters.find(person => person.key === state.selectedKey) || null; }
+  function extForType(type){ return type === 'image/jpeg' ? 'jpg' : type === 'image/png' ? 'png' : 'webp'; }
+  function imageFilename(editor){ return `${selected()?.key || 'character'}.${extForType(editor.format.value)}`; }
+  function initialsFor(name){ return String(name||'?').trim().split(/\s+/).map(part=>part[0]).join('').slice(0,3).toUpperCase(); }
+  function showView(name){
+    const next=['selection','details','images','voice'].includes(name)?name:'selection';
+    state.activeView=next;
+    ['selection','details','images','voice'].forEach(view=>{
+      els[`${view}View`].classList.toggle('active',view===next);
+      const button=els[`${view}ViewButton`];
+      if(button)button.classList.toggle('active',view===next);
+    });
+    if(next==='voice')refreshVoiceInventory();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function updateWorkflow(){
+    const person=selected(),ready=!!person;
+    els.workflowCharacter.textContent=person?person.name:'No character selected';
+    els.workflowFolder.textContent=state.root?`Folder: ${state.root.name}`:'Choose a game folder to begin';
+    els.selectionHeading.textContent=person?`${person.name} selected`:'Choose a character';
+    for(const id of ['chooseCharacterView','detailsViewButton','imagesViewButton','voiceViewButton','selectionDetails','selectionImages','selectionVoice'])els[id].disabled=!ready;
+    const preview=els.workflowAvatar;
+    preview.replaceChildren();
+    preview.className='workflowAvatar avatarFallback';
+    preview.textContent=person?.initials||'?';
+    if(person?.image){
+      const img=document.createElement('img');img.alt='';preview.replaceChildren(img);preview.className='workflowAvatar';
+      if(state.root)loadProjectImageIntoElement(img,person.image).catch(()=>{});
+      else img.src=person.image;
+    }
+  }
+  function renderCurrentImage(container,path,person){
+    container.replaceChildren();container.className='avatarFallback';container.textContent=person?.initials||'?';
+    if(!path)return;
+    const img=document.createElement('img');img.alt='';container.replaceChildren(img);container.className='';
+    if(state.root)loadProjectImageIntoElement(img,path).catch(()=>{container.replaceChildren();container.className='avatarFallback';container.textContent=person?.initials||'?';});
+    else img.src=path;
+  }
+  function defaultPerson(key,name){
+    return {
+      key,name,initials:initialsFor(name),image:'',cardflipImage:'',imageSize:800,occupation:'',gender:'neutral',ageGroup:'adult',
+      difficultyLabel:'Medium',connectDifficulty:'Medium',noughtsDifficulty:'Medium',personality:'Friendly and competitive.',group:'Other',menuGroup:'Other',
+      includeInHumanSelect:true,includeInComputerSelect:true,includeInChallenge:false,challengeDifficulty:'normal',includeInMemoryMatch:true,voice:true
+    };
+  }
+  async function childDir(parent,name,create=false){ return parent.getDirectoryHandle(name,{create}); }
+  async function projectPath(parts,create=false){
+    let dir=state.root;
+    for(let i=0;i<parts.length-1;i++) dir=await childDir(dir,parts[i],create);
+    return {dir,name:parts[parts.length-1]};
+  }
+  async function readText(parts){
+    const {dir,name}=await projectPath(parts,false);
+    const handle=await dir.getFileHandle(name);
+    return (await handle.getFile()).text();
+  }
+  async function writeFile(parts,data){
+    const {dir,name}=await projectPath(parts,true);
+    const handle=await dir.getFileHandle(name,{create:true});
+    const writable=await handle.createWritable();
+    await writable.write(data);
+    await writable.close();
+  }
+  async function removeProjectFile(path){
+    const parts=path.split('/').filter(Boolean);
+    const {dir,name}=await projectPath(parts,false);
+    await dir.removeEntry(name);
+  }
+  function manifestText(){ return JSON.stringify(state.manifest,null,2)+'\n'; }
+  function generatedText(){ return 'window.GC_CHARACTER_MANIFEST = '+JSON.stringify(state.manifest,null,2)+';\n'; }
+  function cardflipManifest(){
+    return JSON.stringify({version:2,notes:'Generated by character-editor.html.',images:Object.fromEntries(state.manifest.characters.filter(p=>p.cardflipImage).map(p=>[p.key,p.cardflipImage]))},null,2)+'\n';
+  }
+  async function persistManifestFiles(){
+    await writeFile(['data','characters.json'],manifestText());
+    await writeFile(['data','characters.generated.js'],generatedText());
+    await writeFile(['data','cardflip-images.json'],cardflipManifest());
+  }
+  async function saveAll(){
+    applyForm(false);
+    if(!state.manifest.characters.some(person=>person.key==='computer')) throw new Error('Professor Pixel is required as the system fallback.');
+    if(state.manifest.characters.filter(person=>person.includeInHumanSelect).length<2) throw new Error('Keep at least two characters in player selection.');
+    if(state.manifest.characters.filter(person=>person.includeInMemoryMatch&&person.key!=='computer').length<2) throw new Error('Keep at least two characters in Card Flipping.');
+    if(!state.root){ downloadText(manifestText(),'characters.json','application/json'); setStatus('Manifest downloaded. Direct folder saving requires Edge/Chrome and Choose game folder.'); return; }
+    await persistManifestFiles();
+    setStatus(`Saved ${state.manifest.characters.length} characters. Refresh or reopen index.html.`);
+  }
+  function downloadText(text,name,type){
+    const blob=new Blob([text],{type}); const url=URL.createObjectURL(blob); const a=document.createElement('a');
+    a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  async function chooseProject(){
+    if(!window.showDirectoryPicker){ setStatus('Direct folder saving needs Edge or Chrome. Use Export manifest and Download image instead.'); return; }
+    try{
+      state.root=await window.showDirectoryPicker({mode:'readwrite',id:'grandad-connect-project'});
+      const manifest=JSON.parse(await readText(['data','characters.json']));
+      if(!Array.isArray(manifest.characters)) throw new Error('characters.json has no characters array.');
+      state.manifest=manifest;
+      state.selectedKey=manifest.characters.find(p=>p.key!=='computer')?.key || manifest.characters[0]?.key || null;
+      els.saveManifest.disabled=false;els.addPerson.disabled=false;els.refreshVoiceInventory.disabled=false;renderList();loadForm();
+      showView('selection');
+      setStatus(`Opened ${state.root.name}. Changes can save directly into this folder.`);
+    }catch(error){ if(error.name!=='AbortError') setStatus(`Could not open project: ${error.message}`); }
+  }
+  function renderList(){
+    els.characterList.innerHTML='';
+    state.manifest.characters.forEach(person=>{
+      const button=document.createElement('button'); button.type='button'; button.className='person'+(person.key===state.selectedKey?' active':'');
+      const picture=person.image ? `<img src="${person.image}" alt="">` : `<span class="avatarFallback">${person.initials||'?'}</span>`;
+      button.innerHTML=`${picture}<span><strong>${person.name}</strong><small>${person.occupation||person.difficultyLabel||person.key}</small></span>`;
+      const img=button.querySelector('img');
+      if(img && state.root) loadProjectImageIntoElement(img,person.image).catch(()=>{ img.replaceWith(fallbackNode(person)); });
+      button.addEventListener('click',()=>{ applyForm(false); state.selectedKey=person.key; clearAllCropEditors(); renderList(); loadForm(); showView('selection'); });
+      els.characterList.appendChild(button);
+    });
+  }
+  function fallbackNode(person){ const node=document.createElement('span'); node.className='avatarFallback'; node.textContent=person.initials||'?'; return node; }
+  async function loadProjectImageIntoElement(img,path){
+    const file=await projectFile(path); const url=URL.createObjectURL(file); img.onload=()=>URL.revokeObjectURL(url); img.src=url;
+  }
+  async function projectFile(path){
+    const parts=String(path||'').split('/').filter(Boolean); const {dir,name}=await projectPath(parts,false); return (await dir.getFileHandle(name)).getFile();
+  }
+  function loadForm(){
+    const person=selected(); if(!person) return;
+    els.key.value=person.key||''; els.key.disabled=person.key==='computer'||!!person.image||!!person.cardflipImage;
+    els.name.value=person.name||''; els.occupation.value=person.occupation||''; els.initials.value=person.initials||'';
+    els.gender.value=person.gender||'neutral'; els.ageGroup.value=person.ageGroup||'adult'; els.group.value=person.group||'Other';
+    els.difficultyLabel.value=person.difficultyLabel||'Medium'; els.connectDifficulty.value=person.connectDifficulty||'Medium'; els.noughtsDifficulty.value=person.noughtsDifficulty||'Medium';
+    els.personality.value=person.personality||''; els.includeHuman.checked=person.includeInHumanSelect!==false; els.includeComputer.checked=person.includeInComputerSelect!==false;
+    els.includeMemory.checked=person.includeInMemoryMatch!==false; els.includeChallenge.checked=!!person.includeInChallenge;
+    els.normalPath.textContent=person.image||'Not set'; els.cardflipPath.textContent=person.cardflipImage||'Not set';
+    els.removePerson.disabled=person.key==='computer'; els.loadNormal.disabled=!state.root||!person.image; els.loadCardflip.disabled=!state.root||!person.cardflipImage;
+    els.removeNormal.disabled=!state.root||!person.image; els.removeCardflip.disabled=!state.root||!person.cardflipImage;
+    els.outputSize.value=String(person.imageSize||800);els.cardOutputSize.value=String(person.cardflipImageSize||person.imageSize||800);
+    renderCurrentImage(els.normalCurrentPreview,person.image,person);renderCurrentImage(els.cardflipCurrentPreview,person.cardflipImage,person);
+    updateWorkflow();
+    refreshVoiceInventory();
+  }
+  function applyForm(showMessage=true){
+    const person=selected(); if(!person) return;
+    const oldKey=person.key; const requestedKey=slug(els.key.value||els.name.value);
+    if(requestedKey && requestedKey!==oldKey){
+      if(state.manifest.characters.some(p=>p.key===requestedKey)) { setStatus('That key is already used.'); els.key.value=oldKey; return; }
+      if(person.image) person.image=person.image.replace(new RegExp(`/${oldKey}(\\.[^/]+)$`),`/${requestedKey}$1`);
+      if(person.cardflipImage) person.cardflipImage=person.cardflipImage.replace(new RegExp(`/${oldKey}(\\.[^/]+)$`),`/${requestedKey}$1`);
+      person.key=requestedKey; state.selectedKey=requestedKey;
+    }
+    person.name=els.name.value.trim()||person.key; person.occupation=els.occupation.value.trim(); person.initials=els.initials.value.trim()||initialsFor(person.name);
+    person.gender=els.gender.value; person.ageGroup=els.ageGroup.value; person.group=els.group.value; person.menuGroup=person.group;
+    person.difficultyLabel=els.difficultyLabel.value.trim()||'Medium'; person.connectDifficulty=els.connectDifficulty.value; person.noughtsDifficulty=els.noughtsDifficulty.value;
+    person.personality=els.personality.value.trim()||'Friendly and competitive.'; person.includeInHumanSelect=els.includeHuman.checked;
+    person.includeInComputerSelect=els.includeComputer.checked; person.includeInMemoryMatch=els.includeMemory.checked; person.includeInChallenge=els.includeChallenge.checked;
+    person.imageSize=parseInt(els.outputSize.value,10)||800;person.cardflipImageSize=parseInt(els.cardOutputSize.value,10)||person.imageSize;person.voice=person.voice!==false;
+    renderList(); loadForm(); if(showMessage) setStatus(`Applied details for ${person.name}. Use Save all changes to write the manifest.`);
+  }
+  function addPerson(){
+    applyForm(false);
+    let n=1,key='new-person'; while(state.manifest.characters.some(p=>p.key===key)) key=`new-person-${++n}`;
+    const person=defaultPerson(key,'New Person'); person.initials=''; state.manifest.characters.push(person); state.selectedKey=key; clearAllCropEditors();renderList();loadForm();showView('details');setStatus('New person added. Edit details, add images, then save all changes.');
+  }
+  async function removePerson(){
+    const person=selected(); if(!person||person.key==='computer') return;
+    if(!confirm(`Remove ${person.name} from all games?`)) return;
+    const remaining=state.manifest.characters.filter(p=>p.key!==person.key);
+    if(remaining.filter(p=>p.includeInHumanSelect).length<2) throw new Error('Keep at least two characters in player selection.');
+    if(remaining.filter(p=>p.includeInMemoryMatch&&p.key!=='computer').length<2) throw new Error('Keep at least two characters in Card Flipping.');
+    const deleteFiles=state.root && confirm('Also delete this person’s normal and card-flip image files?');
+    if(deleteFiles){
+      for(const path of [person.image,person.cardflipImage].filter(Boolean)){ try{ await removeProjectFile(path); }catch(error){} }
+    }
+    state.manifest.characters=remaining;
+    if(state.root) await persistManifestFiles();
+    state.selectedKey=state.manifest.characters.find(p=>p.key!=='computer')?.key||'computer';
+    clearAllCropEditors();renderList();loadForm();showView('selection');
+    setStatus(`${person.name} removed${state.root?' and character data saved':'. Export or save the manifest to finish'}. Refresh or reopen index.html.`);
+  }
+  function canvasPoint(editor,event){
+    const rect=editor.canvas.getBoundingClientRect();const p=event.touches?.[0]||event;
+    return {x:(p.clientX-rect.left)*editor.canvas.width/rect.width,y:(p.clientY-rect.top)*editor.canvas.height/rect.height};
+  }
+  function cropBox(editor){const pad=45;return {x:pad,y:pad,w:editor.canvas.width-pad*2,h:editor.canvas.height-pad*2};}
+  function fitImage(editor){
+    if(!editor.img)return;const box=cropBox(editor);editor.baseScale=Math.max(box.w/editor.img.width,box.h/editor.img.height);editor.scale=editor.baseScale;editor.x=350;editor.y=350;editor.zoom.value='1';drawCropEditor(editor);
+  }
+  function drawCropEditor(editor){
+    const c=editor.canvas,w=c.width,h=c.height,ctx=editor.ctx;ctx.fillStyle='#101827';ctx.fillRect(0,0,w,h);
+    if(editor.img){const iw=editor.img.width*editor.scale,ih=editor.img.height*editor.scale;ctx.drawImage(editor.img,editor.x-iw/2,editor.y-ih/2,iw,ih);}
+    const b=cropBox(editor);ctx.save();ctx.fillStyle='rgba(0,0,0,.5)';ctx.beginPath();ctx.rect(0,0,w,h);ctx.rect(b.x,b.y,b.w,b.h);ctx.fill('evenodd');ctx.strokeStyle='#67e8f9';ctx.lineWidth=5;ctx.strokeRect(b.x,b.y,b.w,b.h);ctx.restore();updateCropPreview(editor);
+  }
+  function outputCanvas(editor){
+    const size=parseInt(editor.outputSize.value,10)||800,out=document.createElement('canvas');out.width=size;out.height=size;const o=out.getContext('2d');
+    if(editor.format.value==='image/jpeg'){o.fillStyle='#fff';o.fillRect(0,0,size,size);}
+    if(editor.img){const b=cropBox(editor),factor=size/b.w,s=editor.scale*factor,dx=(editor.x-b.x)*factor,dy=(editor.y-b.y)*factor;o.drawImage(editor.img,dx-editor.img.width*s/2,dy-editor.img.height*s/2,editor.img.width*s,editor.img.height*s);}
+    return out;
+  }
+  function updateCropPreview(editor){
+    editor.previewCtx.clearRect(0,0,800,800);if(editor.img)editor.previewCtx.drawImage(outputCanvas(editor),0,0,800,800);
+    editor.qualityValue.textContent=Math.round(parseFloat(editor.quality.value)*100)+'%';
+  }
+  function blobFromOutput(editor){return new Promise(resolve=>outputCanvas(editor).toBlob(resolve,editor.format.value,parseFloat(editor.quality.value)));}
+  async function loadImageFile(editor,file){
+    if(!file)return;const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{URL.revokeObjectURL(url);editor.img=img;editor.imgName=file.name;editor.save.disabled=false;editor.download.disabled=false;fitImage(editor);editor.fileInfo.textContent='Loaded '+file.name+': '+img.width+' x '+img.height+', '+Math.round(file.size/1024)+' KB';};
+    img.onerror=()=>{URL.revokeObjectURL(url);setStatus('Could not load that image.');};img.src=url;
+  }
+  async function loadExisting(kind){
+    const person=selected(),editor=cropEditors[kind],path=kind==='cardflip'?person?.cardflipImage:person?.image;if(!path||!state.root)return;
+    try{await loadImageFile(editor,await projectFile(path));setStatus('Loaded '+path+' for editing.');}catch(error){setStatus('Could not load '+path+': '+error.message);}
+  }
+  function clearCropEditor(editor){
+    editor.img=null;editor.imgName='';editor.scale=1;editor.baseScale=1;editor.x=350;editor.y=350;editor.save.disabled=true;editor.download.disabled=true;
+    editor.fileInfo.textContent='No image loaded.';editor.input.value='';drawCropEditor(editor);
+  }
+  function clearAllCropEditors(){Object.values(cropEditors).forEach(clearCropEditor);}
+  async function removeImage(kind){
+    const person=selected();if(!person||!state.root)return;
+    const field=kind==='cardflip'?'cardflipImage':'image',label=kind==='cardflip'?'card-flip':'normal',path=person[field];if(!path)return;
+    if(!confirm('Delete '+person.name+"'s "+label+' image file?'))return;
+    try{await removeProjectFile(path);}catch(error){if(error.name!=='NotFoundError')throw error;}
+    person[field]='';await persistManifestFiles();clearCropEditor(cropEditors[kind]);renderList();loadForm();
+    setStatus(person.name+"'s "+label+' image was removed and character data saved. Refresh or reopen index.html.');
+  }
+  async function saveImage(kind){
+    const person=selected(),editor=cropEditors[kind];if(!person||!editor.img)return;
+    applyForm(false);const blob=await blobFromOutput(editor),filename=imageFilename(editor);
+    const path=kind==='cardflip'?'assets/images/cardflip/'+filename:'assets/images/'+filename;
+    if(state.root)await writeFile(path.split('/'),blob);else downloadBlob(blob,filename);
+    if(kind==='cardflip'){person.cardflipImage=path;person.cardflipImageSize=parseInt(editor.outputSize.value,10)||800;}
+    else{person.image=path;person.imageSize=parseInt(editor.outputSize.value,10)||800;}
+    if(state.root)await persistManifestFiles();renderList();loadForm();
+    setStatus((state.root?'Saved image and character data':'Downloaded image')+': '+path+' ('+Math.round(blob.size/1024)+' KB).'+(state.root?' Refresh or reopen index.html.':' Choose the game folder to save it into the app.'));
+  }
+  function startDrag(editor,event){if(!editor.img)return;event.preventDefault();editor.dragging=true;const p=canvasPoint(editor,event);editor.lastX=p.x;editor.lastY=p.y;}
+  function moveDrag(editor,event){if(!editor.dragging||!editor.img)return;event.preventDefault();const p=canvasPoint(editor,event);editor.x+=p.x-editor.lastX;editor.y+=p.y-editor.lastY;editor.lastX=p.x;editor.lastY=p.y;drawCropEditor(editor);}
+  function endDrag(editor){editor.dragging=false;}
+
+  function voiceDefinitions(){
+    const catalog=window.GC_VOICE_CATALOG||{},person=selected();
+    const character=Object.entries(catalog.characterEvents||{}).map(([key,event])=>({
+      scope:'character',key,label:event.label||key,phrase:event.phrase||'',essential:!!event.essential,
+      baseParts:['assets','audio',person?.key||'character',key]
+    }));
+    const narrator=Object.entries(catalog.narratorEvents||{}).map(([key,event])=>({
+      scope:'narrator',key,label:event.label||key,phrase:event.phrase||'',essential:!!event.essential,
+      baseParts:['assets','audio','narrator',key]
+    }));
+    if(person)narrator.unshift({scope:'name',key:'name',label:`Name: ${person.name}`,phrase:person.name,essential:true,baseParts:['assets','audio','narrator','names',person.key]});
+    return {character,narrator};
+  }
+  async function findVoiceFile(baseParts){
+    const extensions=window.GC_VOICE_CATALOG?.extensions||['mp3','webm','mp4','ogg','wav','m4a'];
+    for(const extension of extensions){
+      const parts=baseParts.slice();parts[parts.length-1]+=`.${extension}`;
+      try{return {found:true,file:await projectFile(parts.join('/')),path:parts.join('/')};}catch(error){}
+    }
+    return {found:false,file:null,path:baseParts.join('/')+'.{'+extensions.join(',')+'}'};
+  }
+  function renderVoiceRows(container,items,waiting=false){
+    container.innerHTML='';
+    items.forEach(item=>{
+      const row=document.createElement('div');row.className='voiceRow';
+      row.innerHTML=`<div><strong>${item.label}${item.essential?' *':''}</strong><small>${item.phrase}</small><span class="voicePath">${item.path||item.baseParts.join('/')}</span></div><div class="voiceActions"><span class="voiceBadge ${waiting?'waiting':item.found?'found':'missing'}">${waiting?'Not scanned':item.found?'Found':'Missing'}</span>${item.found?'<button class="voicePreview" type="button">Play</button>':''}${!waiting&&state.root?`<button class="voiceRecord" type="button">${item.found?'Replace':'Record'}</button>`:''}</div>`;
+      const play=row.querySelector('.voicePreview');if(play)play.addEventListener('click',()=>previewVoiceFile(item.file,item.path));
+      const record=row.querySelector('.voiceRecord');if(record)record.addEventListener('click',()=>openRecordDialog(item));
+      container.appendChild(row);
+    });
+  }
+  async function previewVoiceFile(file,path){
+    if(!file)return;
+    if(state.voicePreviewUrl)URL.revokeObjectURL(state.voicePreviewUrl);
+    state.voicePreviewUrl=URL.createObjectURL(file);els.voicePlayback.src=state.voicePreviewUrl;
+    try{await els.voicePlayback.play();setStatus(`Playing ${path}.`);}catch(error){setStatus(`Could not play ${path}: ${error.message}`);}
+  }
+  function voiceStats(items){
+    const essential=items.filter(item=>item.essential);
+    return {found:items.filter(item=>item.found).length,total:items.length,essentialFound:essential.filter(item=>item.found).length,essentialTotal:essential.length};
+  }
+  async function refreshVoiceInventory(){
+    const definitions=voiceDefinitions(),person=selected(),token=++state.voiceScanToken;
+    if(!person){els.voiceHeading.textContent='Select a character.';return;}
+    els.voiceHeading.textContent=state.root?`Scanning ${person.name} and narrator recordings...`:`${person.name}: choose the game folder to scan recordings.`;
+    if(!state.root){
+      renderVoiceRows(els.characterVoiceList,definitions.character,true);renderVoiceRows(els.narratorVoiceList,definitions.narrator,true);
+      els.voiceSummary.innerHTML='<span class="voiceStat">Inventory not scanned</span>';return;
+    }
+    const character=await Promise.all(definitions.character.map(async item=>Object.assign(item,await findVoiceFile(item.baseParts))));
+    const narrator=await Promise.all(definitions.narrator.map(async item=>Object.assign(item,await findVoiceFile(item.baseParts))));
+    if(token!==state.voiceScanToken)return;
+    renderVoiceRows(els.characterVoiceList,character);renderVoiceRows(els.narratorVoiceList,narrator);
+    const characterStats=voiceStats(character),narratorStats=voiceStats(narrator);
+    els.voiceSummary.innerHTML=`<span class="voiceStat">Character: ${characterStats.found}/${characterStats.total}</span><span class="voiceStat">Essential: ${characterStats.essentialFound}/${characterStats.essentialTotal}</span><span class="voiceStat">Narrator/name: ${narratorStats.found}/${narratorStats.total}</span>`;
+    els.voiceHeading.textContent=`${person.name}: recordings found across all supported audio formats.`;
+  }
+  function detectRecordingFormat(){
+    const options=[['audio/webm;codecs=opus','webm'],['audio/webm','webm'],['audio/ogg;codecs=opus','ogg'],['audio/mp4','mp4'],['','webm']];
+    let selected=options[options.length-1];
+    if(typeof MediaRecorder!=='undefined'){
+      for(const option of options){if(!option[0]||MediaRecorder.isTypeSupported(option[0])){selected=option;break;}}
+    }
+    state.recordMimeType=selected[0]||'audio/webm';state.recordExtension=selected[1];
+  }
+  function openRecordDialog(item){
+    if(!state.root){setStatus('Choose the game folder before recording.');return;}
+    if(typeof MediaRecorder==='undefined'||!navigator.mediaDevices?.getUserMedia){setStatus('Microphone recording is not supported in this browser. Use Edge or Chrome.');return;}
+    cleanupRecordingSession(true);detectRecordingFormat();state.recordItem=item;
+    els.recordTitle.textContent=`${item.found?'Replace':'Record'} ${item.label}`;
+    els.recordPhrase.textContent=item.phrase||item.label;
+    els.recordTarget.textContent=`${item.baseParts.join('/')}.${state.recordExtension}`;
+    els.recordHint.textContent=item.found?'The existing clip will remain unchanged until you confirm Save recording.':`Recording format: .${state.recordExtension}`;
+    els.recordStatus.textContent='Ready to record';els.recordTimer.textContent='00:00';
+    if(!els.recordDialog.open)els.recordDialog.showModal();
+  }
+  async function startVoiceRecording(){
+    if(!state.recordItem)return;
+    try{
+      stopVoiceRecording(true);clearRecordedVoice();
+      state.recordStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+      const options=state.recordMimeType?{mimeType:state.recordMimeType}:undefined;
+      state.recorder=new MediaRecorder(state.recordStream,options);state.recordChunks=[];state.discardRecording=false;
+      state.recorder.addEventListener('dataavailable',event=>{if(event.data&&event.data.size)state.recordChunks.push(event.data);});
+      state.recorder.addEventListener('stop',finishVoiceRecording);
+      state.recorder.start();state.recordStartedAt=Date.now();state.recordTimerId=setInterval(updateRecordTimer,250);setRecordUi(true);
+    }catch(error){setStatus(`Could not start recording. Check microphone permission: ${error.message}`);stopVoiceRecording(true);}
+  }
+  function stopVoiceRecording(discard=false){
+    state.discardRecording=!!discard;
+    if(state.recorder&&state.recorder.state!=='inactive'){try{state.recorder.stop();}catch(error){}}
+    if(state.recordStream){state.recordStream.getTracks().forEach(track=>track.stop());state.recordStream=null;}
+    if(state.recordTimerId)clearInterval(state.recordTimerId);state.recordTimerId=null;setRecordUi(false);
+  }
+  function finishVoiceRecording(){
+    if(state.discardRecording){state.recordChunks=[];state.discardRecording=false;return;}
+    state.recordedBlob=new Blob(state.recordChunks,{type:state.recordMimeType||'audio/webm'});
+    if(state.recordedUrl)URL.revokeObjectURL(state.recordedUrl);
+    state.recordedUrl=URL.createObjectURL(state.recordedBlob);els.recordPlayback.src=state.recordedUrl;
+    els.recordStatus.textContent='Recording ready. Play it back, save it, or record again.';
+    els.recordPlay.disabled=false;els.recordRedo.disabled=false;els.recordSave.disabled=false;
+  }
+  function clearRecordedVoice(){
+    if(state.recordedUrl)URL.revokeObjectURL(state.recordedUrl);
+    state.recordedBlob=null;state.recordedUrl='';state.recordChunks=[];els.recordPlayback.removeAttribute('src');els.recordPlayback.load();
+    els.recordPlay.disabled=true;els.recordRedo.disabled=true;els.recordSave.disabled=true;els.recordTimer.textContent='00:00';els.recordDot.classList.remove('live');
+  }
+  function setRecordUi(recording){
+    els.recordStart.disabled=recording;els.recordStop.disabled=!recording;els.recordDot.classList.toggle('live',recording);
+    if(recording)els.recordStatus.textContent='Recording...';else if(!state.recordedBlob)els.recordStatus.textContent='Ready to record';
+  }
+  function updateRecordTimer(){
+    const elapsed=Math.max(0,Math.floor((Date.now()-state.recordStartedAt)/1000));
+    els.recordTimer.textContent=`${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(elapsed%60).padStart(2,'0')}`;
+  }
+  async function removeVoiceVariants(baseParts,keepExtension=''){
+    for(const extension of window.GC_VOICE_CATALOG?.extensions||['mp3','webm','mp4','ogg','wav','m4a']){
+      if(extension===keepExtension)continue;
+      const parts=baseParts.slice();parts[parts.length-1]+=`.${extension}`;
+      try{await removeProjectFile(parts.join('/'));}catch(error){if(error.name!=='NotFoundError')throw error;}
+    }
+  }
+  async function saveVoiceRecording(){
+    const item=state.recordItem;if(!item||!state.recordedBlob)return;
+    if(item.found&&!confirm(`Replace the existing ${item.label} recording?`))return;
+    const parts=item.baseParts.slice();parts[parts.length-1]+=`.${state.recordExtension}`;
+    await writeFile(parts,state.recordedBlob);
+    if(item.found)await removeVoiceVariants(item.baseParts,state.recordExtension);
+    const savedPath=parts.join('/');closeRecordDialog();await refreshVoiceInventory();setStatus(`Saved ${savedPath}.`);
+  }
+  function cleanupRecordingSession(discard=false){
+    stopVoiceRecording(discard);clearRecordedVoice();state.recorder=null;
+  }
+  function closeRecordDialog(){
+    cleanupRecordingSession(true);state.recordItem=null;if(els.recordDialog.open)els.recordDialog.close();
+  }
+  function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+
+  els.chooseProject.addEventListener('click',chooseProject); els.exportManifest.addEventListener('click',()=>downloadText(manifestText(),'characters.json','application/json'));
+  els.saveManifest.addEventListener('click',()=>saveAll().catch(error=>setStatus(`Save failed: ${error.message}`))); els.addPerson.addEventListener('click',addPerson);
+  els.chooseCharacterView.addEventListener('click',()=>showView('selection'));
+  els.detailsViewButton.addEventListener('click',()=>showView('details'));els.imagesViewButton.addEventListener('click',()=>showView('images'));els.voiceViewButton.addEventListener('click',()=>showView('voice'));
+  els.selectionDetails.addEventListener('click',()=>showView('details'));els.selectionImages.addEventListener('click',()=>showView('images'));els.selectionVoice.addEventListener('click',()=>showView('voice'));
+  document.querySelectorAll('.backToCharacters').forEach(button=>button.addEventListener('click',()=>{if(state.activeView==='details')applyForm(false);showView('selection');}));
+  els.applyDetails.addEventListener('click',()=>applyForm(true)); els.removePerson.addEventListener('click',()=>removePerson().catch(error=>setStatus(error.message)));
+  els.removeNormal.addEventListener('click',()=>removeImage('normal').catch(error=>setStatus(`Image removal failed: ${error.message}`)));
+  els.removeCardflip.addEventListener('click',()=>removeImage('cardflip').catch(error=>setStatus(`Image removal failed: ${error.message}`)));
+  Object.values(cropEditors).forEach(editor=>{
+    editor.choose.addEventListener('click',()=>editor.input.click());editor.input.addEventListener('change',event=>loadImageFile(editor,event.target.files?.[0]));
+    editor.load.addEventListener('click',()=>loadExisting(editor.kind));editor.fill.addEventListener('click',()=>fitImage(editor));
+    editor.zoom.addEventListener('input',()=>{editor.scale=editor.baseScale*parseFloat(editor.zoom.value);drawCropEditor(editor);});
+    ['input','change'].forEach(eventName=>{editor.outputSize.addEventListener(eventName,()=>updateCropPreview(editor));editor.format.addEventListener(eventName,()=>updateCropPreview(editor));editor.quality.addEventListener(eventName,()=>updateCropPreview(editor));});
+    editor.save.addEventListener('click',()=>saveImage(editor.kind).catch(error=>setStatus(`Image save failed: ${error.message}`)));
+    editor.download.addEventListener('click',async()=>downloadBlob(await blobFromOutput(editor),imageFilename(editor)));
+    editor.canvas.addEventListener('mousedown',event=>startDrag(editor,event));editor.canvas.addEventListener('touchstart',event=>startDrag(editor,event),{passive:false});
+  });
+  window.addEventListener('mousemove',event=>Object.values(cropEditors).forEach(editor=>moveDrag(editor,event)));window.addEventListener('mouseup',()=>Object.values(cropEditors).forEach(endDrag));
+  window.addEventListener('touchmove',event=>Object.values(cropEditors).forEach(editor=>moveDrag(editor,event)),{passive:false});window.addEventListener('touchend',()=>Object.values(cropEditors).forEach(endDrag));
+  els.refreshVoiceInventory.addEventListener('click',refreshVoiceInventory);
+  els.recordStart.addEventListener('click',startVoiceRecording);els.recordStop.addEventListener('click',()=>stopVoiceRecording(false));
+  els.recordPlay.addEventListener('click',()=>els.recordPlayback.play().catch(error=>setStatus(`Playback failed: ${error.message}`)));
+  els.recordRedo.addEventListener('click',()=>{cleanupRecordingSession(true);startVoiceRecording();});
+  els.recordSave.addEventListener('click',()=>saveVoiceRecording().catch(error=>setStatus(`Recording save failed: ${error.message}`)));
+  els.recordCancel.addEventListener('click',closeRecordDialog);els.recordDialog.addEventListener('close',()=>{if(state.recordItem){cleanupRecordingSession(true);state.recordItem=null;}});
+  window.GC_CHARACTER_EDITOR = {
+    getManifest:()=>JSON.parse(JSON.stringify(state.manifest)),
+    getSelected:()=>selected()?JSON.parse(JSON.stringify(selected())):null,
+    getVoiceDefinitions:()=>voiceDefinitions(),
+    getRecordingState:()=>({open:els.recordDialog.open,item:state.recordItem?.key||null,hasBlob:!!state.recordedBlob,extension:state.recordExtension}),
+    getActiveView:()=>state.activeView
+  };
+  Object.values(cropEditors).forEach(drawCropEditor);renderList();refreshVoiceInventory();updateWorkflow();
+})();
+</script>
+</body>
+</html>

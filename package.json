@@ -1,0 +1,13 @@
+{
+  "name": "grandad-connect-regression-tests",
+  "private": true,
+  "version": "50.0.0",
+  "scripts": {
+    "test": "node tests/smoke-test.js && node tests/editor-test.js && node tests/visual-test.js",
+    "test:visual": "node tests/visual-test.js",
+    "test:visual:update": "powershell -Command \"$env:UPDATE_VISUAL_BASELINES='1'; node tests/visual-test.js\""
+  },
+  "devDependencies": {
+    "playwright": "^1.60.0"
+  }
+}
