@@ -3658,8 +3658,9 @@ body.game-active .noughtsBoard {
 
     /* v55: elder-friendly touch repair. Keep reveal cards readable without making taps feel ignored. */
     :root {
-      --gc-transition-hold-ms: 1200;
-      --gc-transition-exit-ms: 180;
+      --gc-pick-hold-ms: 500;
+      --gc-vs-hold-ms: 800;
+      --gc-transition-exit-ms: 120;
       --gc-dots-touch-target: 44px;
     }
 
@@ -3756,11 +3757,11 @@ body.game-active .noughtsBoard {
     .gc32PickOverlay {
       pointer-events: auto !important;
       cursor: pointer;
-      animation-duration: 1.2s !important;
+      animation-duration: .5s !important;
     }
     .gc32PickCard,
     .gc32PickInner {
-      animation-duration: 1.2s !important;
+      animation-duration: .5s !important;
     }
 
     body.gc31-dots-active .gc45DotsLine.horizontal {
@@ -7077,8 +7078,9 @@ assets/audio/granny/watch-this.mp3</pre>
   function findImg(key, className=''){
     return imageMarkup(key, className, findImagePaths([key]));
   }
-  const GC55_TRANSITION_HOLD_MS = 1200;
-  const GC55_TRANSITION_EXIT_MS = 180;
+  const GC55_PICK_HOLD_MS = 500;
+  const GC55_VS_HOLD_MS = 800;
+  const GC55_TRANSITION_EXIT_MS = 120;
 
   function showCharacterPickAnimation(key, sourceButton, after){
     const person = char(key);
@@ -7117,7 +7119,7 @@ assets/audio/granny/watch-this.mp3</pre>
     overlay.addEventListener('click', finish, true);
     overlay.addEventListener('touchstart', finish, true);
     document.addEventListener('keydown', finish, true);
-    timer = setTimeout(finish, GC55_TRANSITION_HOLD_MS);
+    timer = setTimeout(finish, GC55_PICK_HOLD_MS);
   }
 
   function showVersusRevealCard(after){
@@ -7161,7 +7163,7 @@ assets/audio/granny/watch-this.mp3</pre>
     overlay.addEventListener('click', finish, true);
     overlay.addEventListener('touchstart', finish, true);
     document.addEventListener('keydown', finish, true);
-    timer = setTimeout(finish, GC55_TRANSITION_HOLD_MS);
+    timer = setTimeout(finish, GC55_VS_HOLD_MS);
   }
 
   function launchBoardGameWithVersusReveal(){
@@ -7175,7 +7177,8 @@ assets/audio/granny/watch-this.mp3</pre>
       return showCharacterPickAnimation(key, button, () => go('opponentType'));
     }
     route.opponent = key;
-    return showCharacterPickAnimation(key, button, () => launchBoardGameWithVersusReveal());
+    if (button) button.classList.add('gc32Clicked');
+    return launchBoardGameWithVersusReveal();
   }
 
   function ensureRoot(){
