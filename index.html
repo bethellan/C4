@@ -2734,6 +2734,53 @@ body.game-active .noughtsBoard {
   body.game-active #memoryScreen .notice,
   body.game-active #noughtsScreen .notice { display: none; }
   body.game-active .memoryBoard { width: min(96vw, calc((100dvh - 134px) * var(--memory-cols) / var(--memory-rows))); }
+  body.game-active #memoryScreen.active {
+    height: auto;
+  }
+  body.game-active #memoryScreen.active > .card {
+    height: auto;
+    overflow: visible;
+  }
+  body.game-active #memoryScreen .miniGamePanel {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+  body.game-active #memoryScreen .memoryStats {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 10px !important;
+    margin: 2px 0 8px;
+  }
+  body.game-active #memoryScreen .memoryStatPill {
+    min-width: 0;
+    min-height: 0;
+    height: 42px !important;
+    padding: 0 16px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #dfe8f3 !important;
+    border-radius: 999px !important;
+    box-shadow: none !important;
+    font-size: clamp(1.02rem, 7vw, 1.25rem) !important;
+    line-height: 1 !important;
+    white-space: nowrap;
+  }
+  body.game-active #memoryScreen .memoryBoard[data-card-count="8"] {
+    width: min(96vw, 430px) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    gap: 8px !important;
+    padding: 9px !important;
+    align-content: start !important;
+    grid-auto-rows: auto !important;
+  }
+  body.game-active #memoryScreen .memoryBoard[data-card-count="8"] .memoryCard {
+    aspect-ratio: 1 / 1;
+  }
 }
 
 
