@@ -6891,9 +6891,16 @@ assets/audio/granny/watch-this.mp3</pre>
     },
     mixed: {
       label:'Mixed',
-      menu:'assets/audio/music/menu-cheerful',
-      game:'assets/audio/music/game-calm',
-      games:{ connect:'assets/audio/music/game-playful', noughts:'assets/audio/music/game-soft', dots:'assets/audio/music/game-puzzle', cards:'assets/audio/music/game-soft', find:'assets/audio/music/game-playful', findCharacter:'assets/audio/music/game-playful' }
+      menu:'assets/audio/music/cyberwave-orchestra-upbeat-background-loop-casual-video-game-music-249200.mp3',
+      game:'assets/audio/music/game-calm.ogg',
+      games:{
+        connect:'assets/audio/music/game-calm.ogg',
+        noughts:'assets/audio/music/game-puzzle.mp3',
+        dots:'assets/audio/music/Rockin-Pong.ogg',
+        cards:'assets/audio/music/The-Pixeltown-Shuffle.mp3',
+        find:'assets/audio/music/The-Arcade-Detective.mp3',
+        findCharacter:'assets/audio/music/More-8-Bit-Drama.mp3'
+      }
     }
   };
 
@@ -6952,7 +6959,7 @@ assets/audio/granny/watch-this.mp3</pre>
     const base = gc54TrackBaseFor(gc54MusicContext);
     const paths = gc54MusicCandidatePaths(base);
     if (!paths.length) { gc54StopMusic(); return; }
-    if (gc54MusicAudio && gc54MusicTrack === paths[0]) {
+    if (gc54MusicAudio && paths.includes(gc54MusicTrack)) {
       gc54ApplyMusicVolume();
       if (gc54MusicAudio.paused) {
         const resumePromise = gc54MusicAudio.play();
@@ -7744,10 +7751,17 @@ assets/audio/granny/watch-this.mp3</pre>
     gc54EnsureMusicToggle();
     gc54StartMusic('game');
   }
-  function render(markup){
+  function render(markup, options={}){
     const root = ensureRoot();
+    const preserveScroll = !!options.preserveScroll;
+    const scrollX = preserveScroll ? window.scrollX : 0;
+    const scrollY = preserveScroll ? window.scrollY : 0;
     root.innerHTML = `<div class="gc31Screen" data-router-build="${esc(BUILD_LABEL)}">${markup}</div>`;
-    try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { try { window.scrollTo(0, 0); } catch(_) {} }
+    if (preserveScroll) {
+      try { window.scrollTo(scrollX, scrollY); } catch(e) {}
+    } else {
+      try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { try { window.scrollTo(0, 0); } catch(_) {} }
+    }
     root.querySelectorAll('[data-back]').forEach(btn => btn.addEventListener('click', () => go(btn.dataset.back || 'home')));
     preloadMenuAndGameIcons(route && route.player ? [route.player, route.opponent] : []);
   }
@@ -7977,7 +7991,7 @@ assets/audio/granny/watch-this.mp3</pre>
       <button type="button" data-speak-truth="off" class="${speakTruth !== 'on' ? 'active' : ''}">Off</button>
     </div></div>`);
   }
-  function settings(){
+  function settings(options={}){
     const text = safeGet('gc31TextSize', safeGet('gcTextSize', 'medium')) || 'medium';
     const sound = safeGet('gc31Sound', safeGet('gcSound', 'on')) || 'on';
     const speakTruth = safeGet('gc33SpeakTruth', 'off') || 'off';
@@ -7993,14 +8007,14 @@ assets/audio/granny/watch-this.mp3</pre>
     </div><p class="gc54MusicNote">Controls character voices and move/drop sounds. Background music has its own switch.</p></div><div class="gc31SettingsRow"><h2>Background music</h2><div class="gc31SettingsBtns two">
       <button type="button" data-music-enabled="on" class="${musicOn ? 'active' : ''}">On</button>
       <button type="button" data-music-enabled="off" class="${!musicOn ? 'active' : ''}">Off</button>
-    </div><p class="gc54MusicNote">One menu tune and one loop for each game. If a file is missing, the app stays silent and keeps working.</p><div class="gc54MusicFiles">Expected folder: assets/audio/music/<br>menu-cheerful.mp3 · game-playful.mp3 · game-calm.mp3 · game-soft.mp3 · game-puzzle.mp3</div></div><div class="gc31SettingsRow"><h2>Music volume</h2><div class="gc31SettingsBtns">
+    </div><p class="gc54MusicNote">One menu tune and one different loop for each game. If a file is missing, the app stays silent and keeps working.</p><div class="gc54MusicFiles">Music folder: assets/audio/music/<br>Menu: cyberwave-orchestra-upbeat-background-loop-casual-video-game-music-249200.mp3<br>Connect Four: game-calm.ogg<br>Noughts &amp; Crosses: game-puzzle.mp3<br>Dots &amp; Boxes: Rockin-Pong.ogg<br>Card Flipping: The-Pixeltown-Shuffle.mp3<br>Find Grandad: The-Arcade-Detective.mp3<br>Find the Character: More-8-Bit-Drama.mp3</div></div><div class="gc31SettingsRow"><h2>Music volume</h2><div class="gc31SettingsBtns">
       <button type="button" data-music-volume="25" class="${musicVolume === '25' ? 'active' : ''}">Low</button>
       <button type="button" data-music-volume="45" class="${musicVolume === '45' ? 'active' : ''}">Medium</button>
       <button type="button" data-music-volume="65" class="${musicVolume === '65' ? 'active' : ''}">High</button>
     </div></div><div class="gc31SettingsRow"><h2>Speak the Truth</h2><div class="gc31SettingsBtns two">
       <button type="button" data-speak-truth="on" class="${speakTruth === 'on' ? 'active' : ''}">On</button>
       <button type="button" data-speak-truth="off" class="${speakTruth !== 'on' ? 'active' : ''}">Off</button>
-    </div></div>`);
+    </div></div>`, options);
   }
   function normaliseDifficulty(label){
     return ({ 'Easy':'easy', 'Easy-Medium':'normal', 'Medium':'normal', 'Medium-Hard':'hard', 'Hard':'hard', 'Expert':'expert', 'Extreme':'master', 'Extreme Max':'master' })[label] || 'normal';
@@ -8597,12 +8611,12 @@ assets/audio/granny/watch-this.mp3</pre>
       if (btn.dataset.findAction === 'again') return launchFindGrandad();
       if (btn.dataset.findAction === 'home') return home();
       if (btn.dataset.explain) return explain(btn.dataset.explain);
-      if (btn.dataset.text) { safeSet('gc31TextSize', btn.dataset.text); safeSet('gcTextSize', btn.dataset.text); applyPrefs(); return settings(); }
-      if (btn.dataset.sound) { safeSet('gc31Sound', btn.dataset.sound); safeSet('gcSound', btn.dataset.sound); applyPrefs(); return settings(); }
-      if (btn.dataset.musicEnabled) { gc54SetMusicEnabled(btn.dataset.musicEnabled === 'on'); return settings(); }
-      if (btn.dataset.music) { gc54SetMusicMode(btn.dataset.music); return settings(); }
-      if (btn.dataset.musicVolume) { gc54SetMusicVolume(btn.dataset.musicVolume); return settings(); }
-      if (btn.dataset.speakTruth) { safeSet('gc33SpeakTruth', btn.dataset.speakTruth === 'on' ? 'on' : 'off'); return settings(); }
+      if (btn.dataset.text) { safeSet('gc31TextSize', btn.dataset.text); safeSet('gcTextSize', btn.dataset.text); applyPrefs(); return settings({ preserveScroll:true }); }
+      if (btn.dataset.sound) { safeSet('gc31Sound', btn.dataset.sound); safeSet('gcSound', btn.dataset.sound); applyPrefs(); return settings({ preserveScroll:true }); }
+      if (btn.dataset.musicEnabled) { gc54SetMusicEnabled(btn.dataset.musicEnabled === 'on'); return settings({ preserveScroll:true }); }
+      if (btn.dataset.music) { gc54SetMusicMode(btn.dataset.music); return settings({ preserveScroll:true }); }
+      if (btn.dataset.musicVolume) { gc54SetMusicVolume(btn.dataset.musicVolume); return settings({ preserveScroll:true }); }
+      if (btn.dataset.speakTruth) { safeSet('gc33SpeakTruth', btn.dataset.speakTruth === 'on' ? 'on' : 'off'); return settings({ preserveScroll:true }); }
     });
   }
   function showStartupSplash(after){
