@@ -305,7 +305,9 @@ Educational simulation tool. Not for clinical decision-making.
       display: block;
     }
 
-    .playerPanel.activeTurn > .avatarBubble {
+    .playerPanel.activeTurn > .avatarBubble,
+    .twoPlayerToken.activeTurn .avatarBubble,
+    .standardPlayerCard.activeTurn > .avatarBubble {
       animation: avatarTurnBounce 1350ms ease-in-out infinite;
     }
 
