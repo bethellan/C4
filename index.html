@@ -4052,8 +4052,8 @@ body.game-active .noughtsBoard {
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      width: 36%;
-      height: 36%;
+      width: 26%;
+      height: 26%;
       border-radius: 50%;
       background: linear-gradient(180deg, #fff, #edf6ff);
       border: 7px solid #073b7c;
@@ -4064,18 +4064,22 @@ body.game-active .noughtsBoard {
       padding: 10px;
       pointer-events: none;
       color: #073b7c;
-      font-size: clamp(1rem, 3.2vmin, 1.9rem);
+      font-size: clamp(0.72rem, 2.25vmin, 1.25rem);
       line-height: 0.92;
       font-weight: 1000;
     }
     .gc57ColourControls {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: minmax(0, 1fr);
       gap: 10px;
-      width: min(560px, 100%);
+      width: min(260px, 100%);
       margin: 0 auto;
     }
     .gc57ColourControls button { min-height: 56px; }
+    #colourCopyHomeButton {
+      margin-top: 8px;
+      align-self: flex-end;
+    }
     @keyframes gc57Shake {
       0%, 100% { transform: translateX(0); }
       25% { transform: translateX(-8px); }
@@ -4090,10 +4094,9 @@ body.game-active .noughtsBoard {
       }
       .gc57Pad { border-radius: 24px; }
       .gc57CentreDisc {
-        width: 40%;
-        height: 40%;
+        width: 29%;
+        height: 29%;
       }
-      .gc57ColourControls { grid-template-columns: 1fr; }
     }
 
 </style>
@@ -4231,15 +4234,14 @@ body.game-active .noughtsBoard {
           <div>
             <span class="gameModeBadge">Colour Copy</span>
             <h2>Colour Copy</h2>
-            <p class="notice">Watch the colours, then copy the pattern.</p>
           </div>
           <button class="secondary" id="colourCopyHomeButton" type="button">Home</button>
         </div>
         <div class="miniGamePanel">
           <div class="gc57ColourCopyShell">
             <section class="gc57ColourStatus" aria-live="polite">
-              <h3 class="gc57ColourTitle" id="colourCopyTitle">Ready?</h3>
-              <p class="gc57ColourSub" id="colourCopySub">Press Start, watch the colours, then copy the pattern.</p>
+              <h3 class="gc57ColourTitle" id="colourCopyTitle"></h3>
+              <p class="gc57ColourSub" id="colourCopySub"></p>
               <div class="gc57ScoreRow">
                 <div class="gc57ScoreBox">Round<strong id="colourCopyRound">0</strong></div>
                 <div class="gc57ScoreBox">Best<strong id="colourCopyBest">0</strong></div>
@@ -4254,9 +4256,7 @@ body.game-active .noughtsBoard {
               <div class="gc57CentreDisc" aria-hidden="true">GAME HUB</div>
             </div>
             <div class="gc57ColourControls">
-              <button class="primary" id="colourCopyStartButton" type="button">Start</button>
               <button id="colourCopyAgainButton" type="button" hidden>Play again</button>
-              <button class="warn" id="colourCopyHomeButton2" type="button">Home</button>
             </div>
           </div>
         </div>
@@ -4408,7 +4408,6 @@ body.game-active .noughtsBoard {
       colourCopyRound: document.getElementById('colourCopyRound'),
       colourCopyBest: document.getElementById('colourCopyBest'),
       colourCopySpeed: document.getElementById('colourCopySpeed'),
-      colourCopyStartButton: document.getElementById('colourCopyStartButton'),
       colourCopyAgainButton: document.getElementById('colourCopyAgainButton')
     };
 
@@ -4441,8 +4440,6 @@ body.game-active .noughtsBoard {
     safeOn('memoryAgainButton', 'click', () => replayFromVisibleGame(startMemoryMatch));
     safeOn('memoryVoiceButton', 'click', toggleVoice);
     safeOn('colourCopyHomeButton', 'click', () => { try { beginNewGameSession(); } catch(e) {} home(); });
-    safeOn('colourCopyHomeButton2', 'click', () => { try { beginNewGameSession(); } catch(e) {} home(); });
-    safeOn('colourCopyStartButton', 'click', () => startColourCopyGame());
     safeOn('colourCopyAgainButton', 'click', () => startColourCopyGame());
     document.addEventListener('click', event => {
       const pad = event.target && event.target.closest ? event.target.closest('[data-colour-copy-pad]') : null;
@@ -8368,7 +8365,7 @@ assets/audio/granny/watch-this.mp3</pre>
       cards:'<p>Flip two cards.</p><p>If the pictures match, those cards stay face up.</p><p>If they do not match, try to remember where they were.</p><p>Find all the pairs to win.</p>',
       noughts:'<p>Take turns placing your mark in a square.</p><p>Get three in a row to win.</p><p>The row can go across, down, or diagonally.</p><p>If the board fills and nobody has three in a row, it is a draw.</p>',
       dots:'<p>Take turns joining two dots with a line.</p><p>If your line completes a box, you claim that box and take another turn.</p><p>If no box is completed, the turn passes to the other player.</p><p>Most boxes wins when the board is full.</p>',
-      colourCopy:'<p>Press Start and watch the colour pattern.</p><p>When it is your turn, tap the same colours in the same order.</p><p>Each correct round adds one more colour.</p><p>Your best score is saved on this device.</p>',
+      colourCopy:'<p>Choose Gentle, Normal, or Fast and watch the colour pattern.</p><p>When it is your turn, tap the same colours in the same order.</p><p>Each correct round adds one more colour.</p><p>Your best score is saved on this device.</p>',
       find:'<p>Listen to the voice prompt.</p><p>The app asks for a family character each round.</p><p>Tap the matching face. The normal family photos appear as choices.</p><p>Find five characters to win.</p>',
       findCharacter:'<p>Listen to the voice prompt.</p><p>The app asks for a different family character each round.</p><p>Tap the matching face. If you tap the wrong face, try again.</p><p>Find five characters to win.</p>'
     };
@@ -8487,6 +8484,8 @@ assets/audio/granny/watch-this.mp3</pre>
     };
     showScreen('colourCopy');
     renderColourCopy();
+    setColourCopyStatus('Starting...', 'Get ready.');
+    window.setTimeout(() => startColourCopyGame(false), 260);
   }
   function renderColourCopy(){
     if (!colourCopyState) return;
@@ -8494,12 +8493,10 @@ assets/audio/granny/watch-this.mp3</pre>
     const best = el.colourCopyBest;
     const speed = el.colourCopySpeed;
     const again = el.colourCopyAgainButton;
-    const start = el.colourCopyStartButton;
     if (round) round.textContent = String(Math.max(0, colourCopyState.sequence.length));
     if (best) best.textContent = String(colourCopyState.best);
     if (speed) speed.textContent = GC57_DIFFICULTIES[colourCopyState.difficulty].label;
     if (again) again.hidden = !colourCopyState.over;
-    if (start) start.textContent = colourCopyState.sequence.length ? 'Restart' : 'Start';
     document.querySelectorAll('[data-colour-copy-pad]').forEach(pad => { pad.disabled = !colourCopyState.accepting; });
   }
   function setColourCopyStatus(title, subtitle){
@@ -8574,13 +8571,17 @@ assets/audio/granny/watch-this.mp3</pre>
     if (!await colourCopyDelay(ms, token)) return;
     pad.classList.remove('active');
   }
-  async function startColourCopyGame(){
-    if (!colourCopyState || !document.body.classList.contains('gc57-colour-copy-active')) launchColourCopy();
+  async function startColourCopyGame(relaunch=true){
+    if (!colourCopyState || !document.body.classList.contains('gc57-colour-copy-active')) {
+      if (!relaunch) return;
+      launchColourCopy();
+    }
     if (!colourCopyState || colourCopyState.playing) return;
     colourCopyUnlockAudio();
     colourCopyState.sequence = [];
     colourCopyState.playerIndex = 0;
     colourCopyState.accepting = false;
+    colourCopyState.playing = true;
     colourCopyState.over = false;
     setColourCopyStatus('Starting...', 'Get ready.');
     renderColourCopy();
@@ -8620,7 +8621,7 @@ assets/audio/granny/watch-this.mp3</pre>
     const expected = colourCopyState.sequence[colourCopyState.playerIndex];
     if (colour !== expected) {
       if (pad) pad.classList.add('wrong');
-      setColourCopyStatus('Oops!', `Game over at round ${colourCopyState.sequence.length}. Press Start to try again.`);
+      setColourCopyStatus('Oops!', `Game over at round ${colourCopyState.sequence.length}. Try again when ready.`);
       colourCopyErrorTone();
       if (colourCopyState.sequence.length > colourCopyState.best) {
         colourCopyState.best = colourCopyState.sequence.length;
