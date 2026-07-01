@@ -3950,6 +3950,22 @@ body.game-active .noughtsBoard {
     }
 
     /* v57 Colour Copy: standalone Simon-style memory game adapted into the GameHub router. */
+    body.gc57-colour-copy-active {
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+    body.gc57-colour-copy-active #colourCopyScreen,
+    body.gc57-colour-copy-active .gc57SimonBoard {
+      touch-action: none;
+      overscroll-behavior: none;
+    }
+    .gc57HeaderActions {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      justify-content: space-between;
+      width: 100%;
+    }
     .gc57ColourCopyShell {
       width: min(760px, 100%);
       margin: 0 auto;
@@ -4018,9 +4034,10 @@ body.game-active .noughtsBoard {
       position: relative;
       overflow: hidden;
       min-height: 0;
+      touch-action: none;
     }
-    .gc57Pad:disabled { cursor: default; }
-    .gc57Pad:active:not(:disabled) { transform: translateY(4px) scale(0.985); }
+    .gc57Pad[aria-disabled="true"] { cursor: default; }
+    .gc57Pad:active { transform: translateY(4px) scale(0.985); }
     .gc57Pad.active {
       filter: brightness(1.8) saturate(1.35);
       box-shadow: inset 0 18px 24px rgba(255,255,255,0.42), inset 0 -12px 0 rgba(0,0,0,0.10), 0 0 42px rgba(255,255,255,0.82), 0 10px 22px rgba(0,0,0,0.18);
@@ -4067,6 +4084,14 @@ body.game-active .noughtsBoard {
       font-size: clamp(0.72rem, 2.25vmin, 1.25rem);
       line-height: 0.92;
       font-weight: 1000;
+      white-space: pre-line;
+      cursor: pointer;
+      touch-action: none;
+      font-family: inherit;
+    }
+    .gc57CentreDisc.holding {
+      outline: 5px solid rgba(255,216,77,0.72);
+      outline-offset: 4px;
     }
     .gc57ColourControls {
       display: grid;
@@ -4079,6 +4104,23 @@ body.game-active .noughtsBoard {
     #colourCopyHomeButton {
       margin-top: 8px;
       align-self: flex-end;
+    }
+    .gc57HoldMenu {
+      width: min(420px, 100%);
+      margin: 0 auto;
+      background: #fff;
+      border: 3px solid #bfd2e8;
+      border-radius: 20px;
+      padding: 12px;
+      box-shadow: 0 14px 34px rgba(16,32,51,0.18);
+      display: grid;
+      gap: 10px;
+    }
+    .gc57HoldMenu[hidden] {
+      display: none;
+    }
+    .gc57HoldMenu button {
+      min-height: 52px;
     }
     @keyframes gc57Shake {
       0%, 100% { transform: translateX(0); }
@@ -4231,11 +4273,14 @@ body.game-active .noughtsBoard {
     <section class="screen" id="colourCopyScreen">
       <div class="card">
         <div class="setupHeader">
+          <div class="gc57HeaderActions">
+            <button class="secondary" id="colourCopyBackButton" type="button">Back</button>
+            <button class="secondary" id="colourCopyHomeButton" type="button">Home</button>
+          </div>
           <div>
             <span class="gameModeBadge">Colour Copy</span>
             <h2>Colour Copy</h2>
           </div>
-          <button class="secondary" id="colourCopyHomeButton" type="button">Home</button>
         </div>
         <div class="miniGamePanel">
           <div class="gc57ColourCopyShell">
@@ -4253,10 +4298,15 @@ body.game-active .noughtsBoard {
               <button class="gc57Pad yellow" type="button" data-colour-copy-pad="yellow" data-label="Yellow" aria-label="Yellow pad"></button>
               <button class="gc57Pad blue" type="button" data-colour-copy-pad="blue" data-label="Blue" aria-label="Blue pad"></button>
               <button class="gc57Pad green" type="button" data-colour-copy-pad="green" data-label="Green" aria-label="Green pad"></button>
-              <div class="gc57CentreDisc" aria-hidden="true">GAME HUB</div>
+              <button class="gc57CentreDisc" id="colourCopyCentreButton" type="button">GAME HUB</button>
             </div>
             <div class="gc57ColourControls">
               <button id="colourCopyAgainButton" type="button" hidden>Play again</button>
+            </div>
+            <div class="gc57HoldMenu" id="colourCopyHoldMenu" hidden>
+              <button class="primary" type="button" data-colour-copy-hold="again">Play again</button>
+              <button type="button" data-colour-copy-hold="record">Record new sequence</button>
+              <button class="secondary" type="button" data-colour-copy-hold="cancel">Cancel</button>
             </div>
           </div>
         </div>
@@ -4408,7 +4458,10 @@ body.game-active .noughtsBoard {
       colourCopyRound: document.getElementById('colourCopyRound'),
       colourCopyBest: document.getElementById('colourCopyBest'),
       colourCopySpeed: document.getElementById('colourCopySpeed'),
-      colourCopyAgainButton: document.getElementById('colourCopyAgainButton')
+      colourCopyAgainButton: document.getElementById('colourCopyAgainButton'),
+      colourCopyBackButton: document.getElementById('colourCopyBackButton'),
+      colourCopyCentreButton: document.getElementById('colourCopyCentreButton'),
+      colourCopyHoldMenu: document.getElementById('colourCopyHoldMenu')
     };
 
     function safeOn(id, eventName, handler) {
@@ -4439,13 +4492,29 @@ body.game-active .noughtsBoard {
     safeOn('memoryHomeButton', 'click', goMenu);
     safeOn('memoryAgainButton', 'click', () => replayFromVisibleGame(startMemoryMatch));
     safeOn('memoryVoiceButton', 'click', toggleVoice);
-    safeOn('colourCopyHomeButton', 'click', () => { try { beginNewGameSession(); } catch(e) {} home(); });
+    safeOn('colourCopyHomeButton', 'click', colourCopyHome);
+    safeOn('colourCopyBackButton', 'click', colourCopyBack);
+    safeOn('colourCopyCentreButton', 'click', colourCopyCentreClick);
+    safeOn('colourCopyCentreButton', 'pointerdown', colourCopyCentreHoldStart);
+    safeOn('colourCopyCentreButton', 'pointerup', colourCopyCentreHoldCancel);
+    safeOn('colourCopyCentreButton', 'pointerleave', colourCopyCentreHoldCancel);
+    safeOn('colourCopyCentreButton', 'pointercancel', colourCopyCentreHoldCancel);
     safeOn('colourCopyAgainButton', 'click', () => startColourCopyGame());
     document.addEventListener('click', event => {
+      const holdButton = event.target && event.target.closest ? event.target.closest('[data-colour-copy-hold]') : null;
+      if (holdButton && document.body.classList.contains('gc57-colour-copy-active')) {
+        event.preventDefault();
+        return colourCopyHoldMenu(holdButton.dataset.colourCopyHold);
+      }
       const pad = event.target && event.target.closest ? event.target.closest('[data-colour-copy-pad]') : null;
       if (!pad || !document.body.classList.contains('gc57-colour-copy-active')) return;
+      event.preventDefault();
       handleColourCopyPad(pad.dataset.colourCopyPad);
     });
+    document.addEventListener('touchmove', event => {
+      if (!document.body.classList.contains('gc57-colour-copy-active')) return;
+      if (event.target && event.target.closest && event.target.closest('#colourCopyScreen')) event.preventDefault();
+    }, { passive:false });
     document.addEventListener('keydown', event => {
       if (!document.body.classList.contains('gc57-colour-copy-active')) return;
       const map = { ArrowUp:'red', ArrowRight:'yellow', ArrowLeft:'blue', ArrowDown:'green', r:'red', y:'yellow', b:'blue', g:'green' };
@@ -4730,11 +4799,8 @@ body.game-active .noughtsBoard {
         }
       } catch(e) {}
       try {
-        if (typeof colourCopyState !== 'undefined' && colourCopyState) {
-          colourCopyState.accepting = false;
-          colourCopyState.playing = false;
-        }
-        document.body.classList.remove('gc57-colour-copy-active');
+        if (typeof colourCopyCleanup === 'function') colourCopyCleanup(true);
+        else document.body.classList.remove('gc57-colour-copy-active');
       } catch(e) {}
     }
 
@@ -8365,7 +8431,7 @@ assets/audio/granny/watch-this.mp3</pre>
       cards:'<p>Flip two cards.</p><p>If the pictures match, those cards stay face up.</p><p>If they do not match, try to remember where they were.</p><p>Find all the pairs to win.</p>',
       noughts:'<p>Take turns placing your mark in a square.</p><p>Get three in a row to win.</p><p>The row can go across, down, or diagonally.</p><p>If the board fills and nobody has three in a row, it is a draw.</p>',
       dots:'<p>Take turns joining two dots with a line.</p><p>If your line completes a box, you claim that box and take another turn.</p><p>If no box is completed, the turn passes to the other player.</p><p>Most boxes wins when the board is full.</p>',
-      colourCopy:'<p>Choose Gentle, Normal, or Fast and watch the colour pattern.</p><p>When it is your turn, tap the same colours in the same order.</p><p>Each correct round adds one more colour.</p><p>Your best score is saved on this device.</p>',
+      colourCopy:'<p>Choose Gentle, Normal, or Fast and watch the colour pattern.</p><p>After the pattern plays, tap the same colours in the same order.</p><p>Each correct round adds one more colour.</p><p>Your best score is saved on this device.</p>',
       find:'<p>Listen to the voice prompt.</p><p>The app asks for a family character each round.</p><p>Tap the matching face. The normal family photos appear as choices.</p><p>Find five characters to win.</p>',
       findCharacter:'<p>Listen to the voice prompt.</p><p>The app asks for a different family character each round.</p><p>Tap the matching face. If you tap the wrong face, try again.</p><p>Find five characters to win.</p>'
     };
@@ -8445,6 +8511,7 @@ assets/audio/granny/watch-this.mp3</pre>
     normal:{ label:'Normal', flash:600, gap:210, shrink:16, min:320 },
     fast:{ label:'Fast', flash:470, gap:160, shrink:18, min:230 }
   };
+  const GC57_MELODY = ['red','yellow','blue','green','red','blue','yellow','green','blue','red','green','yellow','red','yellow','blue','green','green','blue','yellow','red','red','green','yellow','blue','green','red','blue','yellow'];
   let colourCopyState = null;
   let colourCopyAudioContext = null;
 
@@ -8458,34 +8525,75 @@ assets/audio/granny/watch-this.mp3</pre>
   function colourCopySoundOn(){
     return safeGet('gc31Sound', safeGet('gcSound', 'on')) !== 'off';
   }
+  function colourCopyNewState(mode){
+    return {
+      token: gameSessionToken,
+      mode: mode || 'computer',
+      difficulty: colourCopyDifficulty(),
+      best: colourCopyBest(),
+      sequence: [],
+      customSequence: [],
+      playerIndex: 0,
+      accepting: false,
+      playing: false,
+      over: false,
+      recording: mode === 'custom',
+      locked: false,
+      firstTapMade: false,
+      firstRepeatTimer: null,
+      holdTimer: null,
+      holdTriggered: false,
+      holdMenuOpen: false
+    };
+  }
+  function colourCopyClearTimer(name){
+    if (colourCopyState && colourCopyState[name]) {
+      window.clearTimeout(colourCopyState[name]);
+      colourCopyState[name] = null;
+    }
+  }
+  function colourCopyCleanup(clearState=false){
+    if (colourCopyState) {
+      colourCopyClearTimer('firstRepeatTimer');
+      colourCopyClearTimer('holdTimer');
+      colourCopyState.accepting = false;
+      colourCopyState.playing = false;
+      colourCopyState.recording = false;
+      colourCopyState.holdMenuOpen = false;
+    }
+    document.body.classList.remove('gc57-colour-copy-active');
+    document.querySelectorAll('.gc57Pad.active, .gc57Pad.wrong').forEach(pad => pad.classList.remove('active','wrong'));
+    if (el.colourCopyCentreButton) el.colourCopyCentreButton.classList.remove('holding');
+    if (el.colourCopyHoldMenu) el.colourCopyHoldMenu.hidden = true;
+    if (clearState) colourCopyState = null;
+  }
+  function renderColourCopyModeChoice(){
+    render(`${screenHeader({ backTarget:'home', stepLabel:'Step 1', title:'Choose Colour Copy mode', instruction:'Play a random pattern, or record one for someone else to copy.' })}<div class="gc31Stack">
+      <button class="gc31BigButton primary" type="button" data-colour-copy-mode="computer">Play computer sequence<br><small>The app adds a new random colour each round.</small></button>
+      <button class="gc31BigButton" type="button" data-colour-copy-mode="custom">Create a sequence<br><small>Record a pattern, then hand the game to another player.</small></button>
+    </div>`);
+  }
   function renderColourCopyDifficulty(){
-    render(`${screenHeader({ backTarget:'home', stepLabel:'Step 1', title:'Choose Colour Copy speed', instruction:'Difficulty changes how quickly the pattern is shown.' })}<div class="gc31Stack">
+    render(`${screenHeader({ backTarget:'colourCopyMode', stepLabel:'Step 2', title:'Choose Colour Copy speed', instruction:'Difficulty changes how quickly the pattern is shown.' })}<div class="gc31Stack">
       <button class="gc31BigButton primary" type="button" data-colour-copy-diff="gentle">Gentle<br><small>Slower flashes, best for learning.</small></button>
       <button class="gc31BigButton" type="button" data-colour-copy-diff="normal">Normal<br><small>Balanced speed.</small></button>
       <button class="gc31BigButton" type="button" data-colour-copy-diff="fast">Fast<br><small>Shorter flashes for a harder memory challenge.</small></button>
     </div>`);
   }
-  function launchColourCopy(){
+  function launchColourCopy(mode='computer'){
     rememberReplayRoute();
     try { beginNewGameSession(); } catch(e) {}
     showGame();
     document.body.classList.add('gc57-colour-copy-active');
     gc54EnsureMusicToggle();
     gc54StartMusic('game');
-    colourCopyState = {
-      token: gameSessionToken,
-      difficulty: colourCopyDifficulty(),
-      best: colourCopyBest(),
-      sequence: [],
-      playerIndex: 0,
-      accepting: false,
-      playing: false,
-      over: false
-    };
+    colourCopyState = colourCopyNewState(mode);
     showScreen('colourCopy');
+    colourCopyUnlockAudio();
+    if (mode === 'custom') setColourCopyStatus('', '');
+    else setColourCopyStatus('Round 1', '');
     renderColourCopy();
-    setColourCopyStatus('Starting...', 'Get ready.');
-    window.setTimeout(() => startColourCopyGame(false), 260);
+    if (mode === 'computer') startColourCopyGame(false);
   }
   function renderColourCopy(){
     if (!colourCopyState) return;
@@ -8493,11 +8601,26 @@ assets/audio/granny/watch-this.mp3</pre>
     const best = el.colourCopyBest;
     const speed = el.colourCopySpeed;
     const again = el.colourCopyAgainButton;
-    if (round) round.textContent = String(Math.max(0, colourCopyState.sequence.length));
+    const centre = el.colourCopyCentreButton;
+    const holdMenu = el.colourCopyHoldMenu;
+    const count = colourCopyState.mode === 'custom' && colourCopyState.recording
+      ? colourCopyState.customSequence.length
+      : colourCopyState.sequence.length;
+    if (round) round.textContent = String(Math.max(0, count));
     if (best) best.textContent = String(colourCopyState.best);
-    if (speed) speed.textContent = GC57_DIFFICULTIES[colourCopyState.difficulty].label;
+    if (speed) speed.textContent = colourCopyState.mode === 'custom' ? 'Custom' : GC57_DIFFICULTIES[colourCopyState.difficulty].label;
     if (again) again.hidden = !colourCopyState.over;
-    document.querySelectorAll('[data-colour-copy-pad]').forEach(pad => { pad.disabled = !colourCopyState.accepting; });
+    if (centre) {
+      if (colourCopyState.mode === 'custom' && colourCopyState.recording) centre.textContent = 'Choose sequence.\nPress circle to lock in.';
+      else if (colourCopyState.mode === 'custom' && colourCopyState.locked && !colourCopyState.accepting && !colourCopyState.playing) centre.textContent = 'Press Circle\nto begin game';
+      else centre.textContent = 'GAME HUB';
+    }
+    if (holdMenu) holdMenu.hidden = !colourCopyState.holdMenuOpen;
+    const interactive = colourCopyState.accepting || (colourCopyState.mode === 'custom' && colourCopyState.recording && !colourCopyState.playing);
+    document.querySelectorAll('[data-colour-copy-pad]').forEach(pad => {
+      pad.disabled = false;
+      pad.setAttribute('aria-disabled', interactive ? 'false' : 'true');
+    });
   }
   function setColourCopyStatus(title, subtitle){
     if (el.colourCopyTitle) el.colourCopyTitle.textContent = title || '';
@@ -8557,7 +8680,7 @@ assets/audio/granny/watch-this.mp3</pre>
     const length = colourCopyState ? colourCopyState.sequence.length : 1;
     return {
       flashMs: Math.max(d.min, d.flash - (length - 1) * d.shrink),
-      gapMs: Math.max(100, d.gap - Math.floor(length / 5) * 15)
+      gapMs: Math.max(80, d.gap - Math.floor(length / 5) * 15)
     };
   }
   function colourCopyPad(colour){
@@ -8571,85 +8694,239 @@ assets/audio/granny/watch-this.mp3</pre>
     if (!await colourCopyDelay(ms, token)) return;
     pad.classList.remove('active');
   }
+  async function colourCopyPressFeedback(colour, token, ms=220){
+    const pad = colourCopyPad(colour);
+    if (pad) pad.classList.add('active');
+    colourCopyTone(colour, ms);
+    if (!await colourCopyDelay(ms, token)) return false;
+    if (pad) pad.classList.remove('active');
+    return true;
+  }
   async function startColourCopyGame(relaunch=true){
     if (!colourCopyState || !document.body.classList.contains('gc57-colour-copy-active')) {
       if (!relaunch) return;
-      launchColourCopy();
+      launchColourCopy('computer');
     }
     if (!colourCopyState || colourCopyState.playing) return;
     colourCopyUnlockAudio();
+    colourCopyClearTimer('firstRepeatTimer');
+    colourCopyState.mode = colourCopyState.mode || 'computer';
     colourCopyState.sequence = [];
     colourCopyState.playerIndex = 0;
     colourCopyState.accepting = false;
-    colourCopyState.playing = true;
+    colourCopyState.playing = false;
     colourCopyState.over = false;
-    setColourCopyStatus('Starting...', 'Get ready.');
+    colourCopyState.firstTapMade = false;
+    setColourCopyStatus('Round 1', '');
     renderColourCopy();
-    const token = colourCopyState.token;
-    if (!await colourCopyDelay(350, token)) return;
-    colourCopyNextRound(token);
+    colourCopyNextRound(colourCopyState.token);
   }
   async function colourCopyNextRound(token){
     if (!colourCopyState || token !== colourCopyState.token) return;
     colourCopyState.sequence.push(GC57_COLOURS[Math.floor(Math.random() * GC57_COLOURS.length)]);
-    colourCopyState.accepting = false;
-    colourCopyState.playing = true;
-    renderColourCopy();
-    setColourCopyStatus(`Round ${colourCopyState.sequence.length}`, 'Watch carefully...');
-    if (!await colourCopyDelay(550, token)) return;
-    const timings = colourCopyTimings();
-    for (const colour of colourCopyState.sequence) {
-      await colourCopyFlash(colour, timings.flashMs, token);
-      if (!await colourCopyDelay(timings.gapMs, token)) return;
-    }
+    await colourCopyPlaySequence(colourCopyState.sequence, token, `Round ${colourCopyState.sequence.length}`);
+    if (!colourCopyState || token !== colourCopyState.token) return;
     colourCopyState.playerIndex = 0;
     colourCopyState.accepting = true;
     colourCopyState.playing = false;
+    setColourCopyStatus(`Round ${colourCopyState.sequence.length}`, '');
     renderColourCopy();
-    setColourCopyStatus('Your turn', `Copy ${colourCopyState.sequence.length} colour${colourCopyState.sequence.length === 1 ? '' : 's'}.`);
+    if (colourCopyState.sequence.length === 1 && !colourCopyState.firstTapMade) colourCopyScheduleFirstRepeat(token);
+  }
+  async function colourCopyPlaySequence(sequence, token, title){
+    if (!colourCopyState || token !== colourCopyState.token) return;
+    colourCopyState.accepting = false;
+    colourCopyState.playing = true;
+    setColourCopyStatus(title || '', '');
+    renderColourCopy();
+    const timings = colourCopyTimings();
+    for (const colour of sequence) {
+      await colourCopyFlash(colour, timings.flashMs, token);
+      if (!await colourCopyDelay(timings.gapMs, token)) return;
+    }
+  }
+  function colourCopyScheduleFirstRepeat(token){
+    colourCopyClearTimer('firstRepeatTimer');
+    if (!colourCopyState || colourCopyState.mode !== 'computer' || colourCopyState.firstTapMade || colourCopyState.sequence.length !== 1) return;
+    colourCopyState.firstRepeatTimer = window.setTimeout(async () => {
+      if (!colourCopyState || token !== colourCopyState.token || colourCopyState.firstTapMade || !colourCopyState.accepting) return;
+      await colourCopyFlash(colourCopyState.sequence[0], colourCopyTimings().flashMs, token);
+      colourCopyScheduleFirstRepeat(token);
+    }, 5000);
   }
   async function handleColourCopyPad(colour){
-    if (!colourCopyState || !colourCopyState.accepting) return;
+    if (!colourCopyState) return;
     const token = colourCopyState.token;
+    colourCopyUnlockAudio();
+    if (colourCopyState.mode === 'custom' && colourCopyState.recording && !colourCopyState.playing) {
+      colourCopyState.customSequence.push(colour);
+      setColourCopyStatus(`Sequence: ${colourCopyState.customSequence.length}`, '');
+      renderColourCopy();
+      await colourCopyPressFeedback(colour, token, 220);
+      return;
+    }
+    if (!colourCopyState.accepting) return;
+    colourCopyState.firstTapMade = true;
+    colourCopyClearTimer('firstRepeatTimer');
     colourCopyState.accepting = false;
     renderColourCopy();
-    const pad = colourCopyPad(colour);
-    if (pad) pad.classList.add('active');
-    colourCopyTone(colour, 220);
-    if (!await colourCopyDelay(220, token)) return;
-    if (pad) pad.classList.remove('active');
+    await colourCopyPressFeedback(colour, token, 220);
+    if (!colourCopyState || token !== colourCopyState.token) return;
     const expected = colourCopyState.sequence[colourCopyState.playerIndex];
-    if (colour !== expected) {
-      if (pad) pad.classList.add('wrong');
-      setColourCopyStatus('Oops!', `Game over at round ${colourCopyState.sequence.length}. Try again when ready.`);
-      colourCopyErrorTone();
-      if (colourCopyState.sequence.length > colourCopyState.best) {
+    if (colour !== expected) return colourCopyFail(colour, token);
+    colourCopyState.playerIndex += 1;
+    if (colourCopyState.playerIndex >= colourCopyState.sequence.length) {
+      if (colourCopyState.mode === 'computer' && colourCopyState.sequence.length > colourCopyState.best) {
         colourCopyState.best = colourCopyState.sequence.length;
         safeSet('colourCopyBest', colourCopyState.best);
       }
+      setColourCopyStatus('Correct', '');
+      renderColourCopy();
+      if (!await colourCopyDelay(620, token)) return;
+      if (colourCopyState.mode === 'custom') {
+        colourCopyState.accepting = false;
+        colourCopyState.playing = false;
+        setColourCopyStatus('Correct', 'Hold the circle for options.');
+        renderColourCopy();
+      } else {
+        colourCopyNextRound(token);
+      }
+    } else {
+      colourCopyState.accepting = true;
+      setColourCopyStatus('', '');
+      renderColourCopy();
+    }
+  }
+  async function colourCopyFail(colour, token){
+    const pad = colourCopyPad(colour);
+    if (pad) pad.classList.add('wrong');
+    setColourCopyStatus('Oops', 'Game over.');
+    colourCopyErrorTone();
+    colourCopyState.over = true;
+    colourCopyState.accepting = false;
+    colourCopyState.playing = false;
+    if (!await colourCopyDelay(360, token)) return;
+    if (pad) pad.classList.remove('wrong');
+    renderColourCopy();
+  }
+  function colourCopyCentreClick(event){
+    if (event) event.preventDefault();
+    if (!colourCopyState || colourCopyState.mode !== 'custom') return;
+    if (colourCopyState.holdTriggered) {
+      colourCopyState.holdTriggered = false;
+      return;
+    }
+    colourCopyUnlockAudio();
+    if (colourCopyState.recording) return colourCopyLockCustomSequence();
+    if (colourCopyState.locked && !colourCopyState.playing && !colourCopyState.accepting) return colourCopyPlayCustomSequence();
+  }
+  function colourCopyLockCustomSequence(){
+    if (!colourCopyState || colourCopyState.mode !== 'custom') return;
+    if (!colourCopyState.customSequence.length) return colourCopyPlayNoSequenceMelody();
+    colourCopyState.sequence = colourCopyState.customSequence.slice();
+    colourCopyState.recording = false;
+    colourCopyState.locked = true;
+    colourCopyState.over = false;
+    setColourCopyStatus('', '');
+    renderColourCopy();
+  }
+  async function colourCopyPlayCustomSequence(){
+    if (!colourCopyState || !colourCopyState.locked || !colourCopyState.sequence.length || colourCopyState.playing) return;
+    const token = colourCopyState.token;
+    colourCopyState.over = false;
+    colourCopyState.playerIndex = 0;
+    await colourCopyPlaySequence(colourCopyState.sequence, token, '');
+    if (!colourCopyState || token !== colourCopyState.token) return;
+    colourCopyState.accepting = true;
+    colourCopyState.playing = false;
+    setColourCopyStatus('', '');
+    renderColourCopy();
+  }
+  async function colourCopyPlayNoSequenceMelody(){
+    if (!colourCopyState || colourCopyState.playing) return;
+    const token = colourCopyState.token;
+    colourCopyState.playing = true;
+    colourCopyState.recording = false;
+    setColourCopyStatus('Listen', '');
+    renderColourCopy();
+    for (const colour of GC57_MELODY) {
+      await colourCopyFlash(colour, 420, token);
+      if (!await colourCopyDelay(190, token)) return;
+    }
+    for (let i = 0; i < 3; i++) {
+      for (const colour of GC57_COLOURS) {
+        await colourCopyFlash(colour, 130, token);
+      }
+    }
+    document.querySelectorAll('[data-colour-copy-pad]').forEach(pad => pad.classList.add('active'));
+    colourCopyTone('green', 520);
+    await colourCopyDelay(520, token);
+    document.querySelectorAll('[data-colour-copy-pad]').forEach(pad => pad.classList.remove('active'));
+    if (!colourCopyState || token !== colourCopyState.token) return;
+    colourCopyState.customSequence = [];
+    colourCopyState.sequence = [];
+    colourCopyState.recording = true;
+    colourCopyState.locked = false;
+    colourCopyState.playing = false;
+    setColourCopyStatus('', '');
+    renderColourCopy();
+  }
+  function colourCopyCentreHoldStart(event){
+    if (!colourCopyState || colourCopyState.mode !== 'custom') return;
+    colourCopyCentreHoldCancel();
+    if (el.colourCopyCentreButton) el.colourCopyCentreButton.classList.add('holding');
+    colourCopyState.holdTimer = window.setTimeout(() => {
+      if (!colourCopyState || colourCopyState.mode !== 'custom') return;
+      colourCopyState.holdTriggered = true;
+      colourCopyState.holdMenuOpen = true;
+      if (el.colourCopyCentreButton) el.colourCopyCentreButton.classList.remove('holding');
+      renderColourCopy();
+    }, 3000);
+  }
+  function colourCopyCentreHoldCancel(){
+    colourCopyClearTimer('holdTimer');
+    if (el.colourCopyCentreButton) el.colourCopyCentreButton.classList.remove('holding');
+  }
+  function colourCopyHoldMenu(action){
+    if (!colourCopyState || colourCopyState.mode !== 'custom') return;
+    colourCopyState.holdMenuOpen = false;
+    if (action === 'record') {
+      colourCopyState.customSequence = [];
       colourCopyState.sequence = [];
       colourCopyState.playerIndex = 0;
-      colourCopyState.over = true;
-      if (!await colourCopyDelay(360, token)) return;
-      if (pad) pad.classList.remove('wrong');
+      colourCopyState.accepting = false;
+      colourCopyState.playing = false;
+      colourCopyState.over = false;
+      colourCopyState.recording = true;
+      colourCopyState.locked = false;
+      setColourCopyStatus('', '');
       renderColourCopy();
       return;
     }
-    colourCopyState.playerIndex += 1;
-    if (colourCopyState.playerIndex >= colourCopyState.sequence.length) {
-      if (colourCopyState.sequence.length > colourCopyState.best) {
-        colourCopyState.best = colourCopyState.sequence.length;
-        safeSet('colourCopyBest', colourCopyState.best);
+    if (action === 'again') {
+      renderColourCopy();
+      if (colourCopyState.sequence.length) colourCopyPlayCustomSequence();
+      else {
+        colourCopyState.recording = true;
+        renderColourCopy();
       }
-      setColourCopyStatus('Correct!', 'Next round coming up.');
-      renderColourCopy();
-      if (!await colourCopyDelay(700, token)) return;
-      colourCopyNextRound(token);
-    } else {
-      colourCopyState.accepting = true;
-      renderColourCopy();
-      setColourCopyStatus('Keep going', `${colourCopyState.sequence.length - colourCopyState.playerIndex} to go.`);
+      return;
     }
+    renderColourCopy();
+  }
+  function colourCopyHome(){
+    colourCopyCleanup(true);
+    try { beginNewGameSession(); } catch(e) {}
+    home();
+  }
+  function colourCopyBack(){
+    const mode = colourCopyState && colourCopyState.mode;
+    colourCopyCleanup(true);
+    try { beginNewGameSession(); } catch(e) {}
+    showMenu();
+    route.game = 'colourCopy';
+    if (mode === 'computer') renderColourCopyDifficulty();
+    else renderColourCopyModeChoice();
   }
   function suppressOldModals(){
     // Clear any legacy modal before the clean router launches a game.
@@ -9191,6 +9468,8 @@ assets/audio/granny/watch-this.mp3</pre>
     if (screen === 'dotsDifficulty') return dotsDifficulty();
     if (screen === 'dotsComputerDifficulty') return dotsComputerDifficulty();
     if (screen === 'findDifficulty') return findDifficulty();
+    if (screen === 'colourCopyMode') return renderColourCopyModeChoice();
+    if (screen === 'colourCopyDifficulty') return renderColourCopyDifficulty();
     if (screen === 'how') return how();
     if (screen === 'settings') return settings();
     return home();
@@ -9206,7 +9485,7 @@ assets/audio/granny/watch-this.mp3</pre>
       if (btn.dataset.game) {
         route.game = btn.dataset.game;
         if (route.game === 'cards') return go('cardDifficulty');
-        if (route.game === 'colourCopy') return renderColourCopyDifficulty();
+        if (route.game === 'colourCopy') return renderColourCopyModeChoice();
         if (route.game === 'dots') return go('dotsDifficulty');
         if (route.game === 'find' || route.game === 'findCharacter') return go('findDifficulty');
         return go('player');
@@ -9225,11 +9504,20 @@ assets/audio/granny/watch-this.mp3</pre>
         route.cardDifficulty = btn.dataset.cardDiff;
         return launchCards();
       }
+      if (btn.dataset.colourCopyMode) {
+        route.colourCopyMode = btn.dataset.colourCopyMode;
+        colourCopyUnlockAudio();
+        if (route.colourCopyMode === 'custom') return launchColourCopy('custom');
+        return renderColourCopyDifficulty();
+      }
       if (btn.dataset.colourCopyDiff) {
         safeSet('colourCopyDifficulty', btn.dataset.colourCopyDiff);
-        return launchColourCopy();
+        route.colourCopyMode = 'computer';
+        colourCopyUnlockAudio();
+        return launchColourCopy('computer');
       }
       if (btn.dataset.colourCopyPad) return handleColourCopyPad(btn.dataset.colourCopyPad);
+      if (btn.dataset.colourCopyHold) return colourCopyHoldMenu(btn.dataset.colourCopyHold);
       if (btn.dataset.dotsAi) {
         route.dotsAiDifficulty = btn.dataset.dotsAi;
         route.opponent = randomDotsComputerOpponent();
