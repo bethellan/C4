@@ -3965,6 +3965,7 @@ body.game-active .noughtsBoard {
       align-items: flex-start;
       justify-content: space-between;
       width: 100%;
+      padding-right: 64px;
     }
     .gc57ColourCopyShell {
       width: min(760px, 100%);
@@ -4500,6 +4501,13 @@ body.game-active .noughtsBoard {
     safeOn('colourCopyCentreButton', 'pointerleave', colourCopyCentreHoldCancel);
     safeOn('colourCopyCentreButton', 'pointercancel', colourCopyCentreHoldCancel);
     safeOn('colourCopyAgainButton', 'click', () => startColourCopyGame());
+    document.addEventListener('pointerdown', event => {
+      const pad = event.target && event.target.closest ? event.target.closest('[data-colour-copy-pad]') : null;
+      if (!pad || !document.body.classList.contains('gc57-colour-copy-active')) return;
+      event.preventDefault();
+      colourCopyLastPointerAt = Date.now();
+      handleColourCopyPad(pad.dataset.colourCopyPad);
+    });
     document.addEventListener('click', event => {
       const holdButton = event.target && event.target.closest ? event.target.closest('[data-colour-copy-hold]') : null;
       if (holdButton && document.body.classList.contains('gc57-colour-copy-active')) {
@@ -4509,6 +4517,7 @@ body.game-active .noughtsBoard {
       const pad = event.target && event.target.closest ? event.target.closest('[data-colour-copy-pad]') : null;
       if (!pad || !document.body.classList.contains('gc57-colour-copy-active')) return;
       event.preventDefault();
+      if (Date.now() - colourCopyLastPointerAt < 450) return;
       handleColourCopyPad(pad.dataset.colourCopyPad);
     });
     document.addEventListener('touchmove', event => {
@@ -5003,7 +5012,7 @@ body.game-active .noughtsBoard {
     let dragState = null;
     let dragArmDelayTimer = null;
     let suppressNextDropClick = false;
-    let activeTopCol = 3;
+    var activeTopCol = 3;
 
     function clampActiveTopCol() {
       if (!Number.isInteger(activeTopCol)) activeTopCol = 3;
@@ -8514,6 +8523,7 @@ assets/audio/granny/watch-this.mp3</pre>
   const GC57_MELODY = ['red','yellow','blue','green','red','blue','yellow','green','blue','red','green','yellow','red','yellow','blue','green','green','blue','yellow','red','red','green','yellow','blue','green','red','blue','yellow'];
   let colourCopyState = null;
   let colourCopyAudioContext = null;
+  let colourCopyLastPointerAt = 0;
 
   function colourCopyDifficulty(){
     const saved = safeGet('colourCopyDifficulty', 'normal') || 'normal';
