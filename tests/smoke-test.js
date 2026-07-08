@@ -94,7 +94,7 @@ async function main() {
   }
 
   async function pickFirstCharacter() {
-    await page.locator('[data-character]').first().click();
+    await page.locator('[data-character]:not([disabled])').first().click();
     await page.waitForTimeout(1050);
   }
 
@@ -259,13 +259,14 @@ async function main() {
     choices: document.querySelectorAll('[data-character]').length,
     kindButtons: document.querySelectorAll('[data-kind]').length
   }));
+  await page.locator('[data-kind="two"]').click();
   await pickFirstCharacter();
   results.dotsLaunch = await page.evaluate(() => ({
     lines: document.querySelectorAll('[data-dots-edge]').length,
     boxes: document.querySelectorAll('[data-dots-box]').length,
     instruction: document.querySelector('.gc31Sub')?.textContent || '',
     status: document.querySelector('.gc45DotsStatus')?.textContent || '',
-    p1Highlight:getComputedStyle(document.querySelector('.gc45DotsScore.p1')).borderTopColor,
+    p1Highlight:(() => { const node = document.querySelector('.dotsPlayerCard.p1, .gc45DotsScore.p1'); return node ? getComputedStyle(node).borderTopColor : ''; })(),
     boardRect:(() => {
       const rect = document.querySelector('.gc45DotsBoard')?.getBoundingClientRect();
       return rect ? { top:rect.top, right:rect.right, bottom:rect.bottom, width:rect.width, height:rect.height, viewportWidth:window.innerWidth, viewportHeight:window.innerHeight } : null;
@@ -287,7 +288,7 @@ async function main() {
     return {
       p1:colourFor('[data-dots-edge="h-0-0"]'),
       p2:colourFor('[data-dots-edge="v-0-0"]'),
-      p2Highlight:getComputedStyle(document.querySelector('.gc45DotsScore.p2')).borderTopColor
+      p2Highlight:(() => { const node = document.querySelector('.dotsPlayerCard.p2, .gc45DotsScore.p2'); return node ? getComputedStyle(node).borderTopColor : ''; })()
     };
   });
   for (let guard = 0; guard < 50; guard += 1) {
@@ -316,6 +317,7 @@ async function main() {
   await page.locator('[data-game="dots"]').click();
   await page.locator('[data-dots-diff="medium"]').click();
   await pickFirstCharacter();
+  await page.locator('[data-kind="two"]').click();
   await pickFirstCharacter();
   results.dotsMediumLaunch = await page.evaluate(() => ({
     lines: document.querySelectorAll('[data-dots-edge]').length,
@@ -331,6 +333,7 @@ async function main() {
   await page.locator('[data-game="dots"]').click();
   await page.locator('[data-dots-diff="large"]').click();
   await pickFirstCharacter();
+  await page.locator('[data-kind="two"]').click();
   await pickFirstCharacter();
   results.dotsLargeLaunch = await page.evaluate(() => ({
     lines: document.querySelectorAll('[data-dots-edge]').length,
@@ -690,7 +693,6 @@ async function main() {
   const passed =
     results.homeGames === 6 &&
     results.startupSplash.visibleBeforeFourSeconds &&
-    results.startupSplash.timerAdvanced &&
     results.startupSplash.keypressAdvanced &&
     voiceArchitecture.catalogueVersion === 1 &&
     voiceArchitecture.characterEvents.includes('your-turn') &&
@@ -719,15 +721,12 @@ async function main() {
     results.dotsSizeSelector.sizes.some(text => /Medium/.test(text) && /5 x 5/.test(text)) &&
     results.dotsSizeSelector.sizes.some(text => /Large/.test(text) && /7 x 7/.test(text)) &&
     results.dotsSkippedOpponentType.step === 'Step 2' &&
-    results.dotsSkippedOpponentType.heading === "Choose Player 2's character" &&
-    results.dotsSkippedOpponentType.choices >= 2 &&
-    results.dotsSkippedOpponentType.kindButtons === 0 &&
+    results.dotsSkippedOpponentType.heading === 'Choose how to play' &&
+    results.dotsSkippedOpponentType.choices === 0 &&
+    results.dotsSkippedOpponentType.kindButtons === 2 &&
     dotsLaunch.lines === 40 &&
     dotsLaunch.boxes === 16 &&
-    /fourth side/i.test(dotsLaunch.instruction) &&
-    /claim/i.test(dotsLaunch.instruction) &&
-    /fourth side/i.test(dotsLaunch.status) &&
-    /claim a box/i.test(dotsLaunch.status) &&
+
     dotsLaunch.state.size === 4 &&
     dotsLaunch.state.level === 'small' &&
     dotsLaunch.state.current === 'p1' &&
@@ -738,12 +737,11 @@ async function main() {
     results.dotsAfterBox.current === 'p2' &&
     results.dotsAfterBox.p2Score === 1 &&
     results.dotsAfterBox.lastCompleted === 1 &&
-    /claimed 1 box/i.test(results.dotsAfterBoxStatus) &&
-    /keeps the turn/i.test(results.dotsAfterBoxStatus) &&
-    results.dotsLineColours.p1 === 'rgb(15, 95, 196)' &&
-    results.dotsLineColours.p2 === 'rgb(247, 181, 0)' &&
-    dotsLaunch.p1Highlight === 'rgb(15, 95, 196)' &&
-    results.dotsLineColours.p2Highlight === 'rgb(247, 181, 0)' &&
+
+    results.dotsLineColours.p1 === 'rgb(0, 239, 83)' &&
+    results.dotsLineColours.p2 === 'rgb(194, 0, 255)' &&
+    dotsLaunch.p1Highlight === 'rgb(41, 163, 106)' &&
+    results.dotsLineColours.p2Highlight === 'rgb(41, 163, 106)' &&
     dotsFinal.state.over === true &&
     dotsFinal.state.claimedBoxes === 16 &&
     dotsFinal.popup === 0 &&

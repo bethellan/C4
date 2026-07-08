@@ -2892,7 +2892,7 @@ body.game-active .noughtsBoard {
       font-size: clamp(3rem, 16vw, 6rem);
     }
     .gc32PickBack::after {
-      content: '★';
+      content: '\2B50';
       width: 110px;
       height: 110px;
       border-radius: 28px;
@@ -2968,7 +2968,9 @@ body.game-active .noughtsBoard {
       font-size: clamp(2.1rem, 8vw, 4.5rem);
       font-weight: 1000;
     }
-    .memoryCardBack::after { content: "⭐"; filter: drop-shadow(0 5px 0 rgba(0,0,0,.16)); }
+    .memoryCardBack::after,
+    .memory-card-back::after,
+    .memoryFlipBack::after { content: "\2B50"; filter: drop-shadow(0 5px 0 rgba(0,0,0,.16)); }
     .memoryCardFront {
       transform: rotateY(180deg);
       background: linear-gradient(180deg, #fff 0%, #fffdf6 60%, #fff0b8 100%);
@@ -4657,7 +4659,7 @@ body.game-active .noughtsBoard {
     let dragState = null;
     let dragArmDelayTimer = null;
     let suppressNextDropClick = false;
-    let activeTopCol = 3;
+    var activeTopCol = 3;
 
     function clampActiveTopCol() {
       if (!Number.isInteger(activeTopCol)) activeTopCol = 3;
@@ -4891,6 +4893,7 @@ body.game-active .noughtsBoard {
       if (row === -1) return false;
       state.isDropping = true;
       state.activeDropCol = col;
+      activeTopCol = col;
       renderAll();
       animateDrop(row, col, piece).then(() => {
         state.board[row][col] = piece;
@@ -5667,15 +5670,18 @@ body.game-active .noughtsBoard {
       return score;
     }
 
-    function scoreWindows(board, piece) {
+    const CONNECT_WINDOWS = (() => {
       const lines = [];
       for (let r = 0; r < ROWS; r++) for (let c = 0; c <= COLS - 4; c++) lines.push([[r,c],[r,c+1],[r,c+2],[r,c+3]]);
       for (let c = 0; c < COLS; c++) for (let r = 0; r <= ROWS - 4; r++) lines.push([[r,c],[r+1,c],[r+2,c],[r+3,c]]);
       for (let r = 0; r <= ROWS - 4; r++) for (let c = 0; c <= COLS - 4; c++) lines.push([[r,c],[r+1,c+1],[r+2,c+2],[r+3,c+3]]);
       for (let r = 0; r <= ROWS - 4; r++) for (let c = 3; c < COLS; c++) lines.push([[r,c],[r+1,c-1],[r+2,c-2],[r+3,c-3]]);
+      return lines;
+    })();
 
+    function scoreWindows(board, piece) {
       let score = 0;
-      for (const line of lines) {
+      for (const line of CONNECT_WINDOWS) {
         const values = line.map(([r,c]) => board[r][c]);
         const own = values.filter(v => v === piece).length;
         const opp = values.filter(v => v === opponent(piece)).length;
@@ -6398,10 +6404,15 @@ body.game-active .noughtsBoard {
               }
               renderNoughts();
             }
-          }, selectedDifficulty === 'easy' ? 550 : selectedDifficulty === 'normal' ? 850 : 1100);
+          }, noughtsAiDelay());
         }
       }
       renderNoughts();
+    }
+
+    function noughtsAiDelay() {
+      const difficulty = (noughtsState && noughtsState.difficulty) || selectedDifficulty || 'normal';
+      return difficulty === 'easy' ? 550 : difficulty === 'normal' ? 850 : 1100;
     }
 
     function finishNoughtsTurn(mark) {
@@ -6492,6 +6503,21 @@ body.game-active .noughtsBoard {
     }
 
     window.GC_SPEAK_NOUGHTS_EVENT = speakNoughtsEvent;
+    window.GC_GET_NOUGHTS_STATE = function(){
+      if (!noughtsState) return null;
+      return {
+        board:noughtsState.board.slice(),
+        turn:noughtsState.turn,
+        over:noughtsState.over,
+        winner:noughtsState.winner,
+        winCells:(noughtsState.winCells || []).slice(),
+        moves:noughtsState.moves,
+        mode:noughtsState.mode || 'computer',
+        difficulty:noughtsState.difficulty || selectedDifficulty || 'normal',
+        human:noughtsState.human && noughtsState.human.key,
+        opponent:noughtsState.opponent && noughtsState.opponent.key
+      };
+    };
 
     function bestNoughtsMinimaxMove(board) {
       const empty = board.map((v,i) => v ? null : i).filter(v => v !== null);
@@ -6551,7 +6577,7 @@ body.game-active .noughtsBoard {
       showScreen('memory');
       if (el.memoryTitle) el.memoryTitle.textContent = 'Card Flipping';
       const badge = document.querySelector('#memoryScreen .gameModeBadge');
-      if (badge) badge.textContent = '⭐ Card Flipping';
+      if (badge) badge.textContent = '\u2B50 Card Flipping';
       renderMemoryMatch();
       updatePlayAgainVisibility();
       speakNoughts(CHARACTERS[profileAvatar] || CHARACTERS.grandad, 'Find the matching family cards.');
@@ -7043,6 +7069,12 @@ assets/audio/granny/watch-this.mp3</pre>
     };
     tryPath();
   }
+  function gc54HandlePageHidden(){
+    if (document.hidden) gc54StopMusic();
+  }
+  document.addEventListener('visibilitychange', gc54HandlePageHidden);
+  window.addEventListener('pagehide', gc54StopMusic);
+
   function gc54UnlockMusic(){
     if (gc54MusicUnlocked) {
       if (!gc54MusicMuted() && gc54MusicAudio && gc54MusicAudio.paused) {
@@ -7089,7 +7121,7 @@ assets/audio/granny/watch-this.mp3</pre>
     const show = document.body && (document.body.classList.contains('game-active') || document.body.classList.contains('gc31-game-active') || document.body.classList.contains('gc31-dots-active'));
     if (show) button.style.setProperty('display', 'inline-flex', 'important');
     else button.style.removeProperty('display');
-    button.textContent = muted ? '🔇' : '🔊';
+    button.textContent = muted ? '\uD83D\uDD07' : '\uD83D\uDD0A';
     button.title = muted ? 'Music muted' : 'Music on';
     button.setAttribute('aria-label', muted ? 'Background music muted. Tap to turn music on.' : 'Background music on. Tap to mute music.');
     button.setAttribute('aria-pressed', muted ? 'true' : 'false');
@@ -7476,17 +7508,28 @@ assets/audio/granny/watch-this.mp3</pre>
   }
   function playFindNarratorChoices(choices, fallbackText, onComplete){
     let completed = false;
+    let fallbackTimer = null;
+    const clearFallbackTimer = () => {
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      fallbackTimer = null;
+    };
     const complete = () => {
       if (completed) return;
       completed = true;
+      clearFallbackTimer();
       if (typeof onComplete === 'function') onComplete();
     };
-    const fallback = () => findSpeakFallback(fallbackText, complete);
+    const fallback = () => {
+      if (completed) return;
+      clearFallbackTimer();
+      findSpeakFallback(fallbackText, complete);
+    };
     if (!choices || !choices.length) {
       fallback();
       return;
     }
     try { if (typeof stopActiveAudio === 'function') stopActiveAudio(); } catch(e) {}
+    fallbackTimer = setTimeout(fallback, 900);
     const token = ++audioPlayToken;
     let choiceIndex = 0;
     const tryChoice = () => {
@@ -7495,21 +7538,28 @@ assets/audio/granny/watch-this.mp3</pre>
         fallback();
         return;
       }
-      playFindNarratorSequence(choices[choiceIndex++], 0, tryChoice, complete, token);
+      playFindNarratorSequence(choices[choiceIndex++], 0, tryChoice, complete, token, clearFallbackTimer);
     };
     tryChoice();
   }
-  function playFindNarratorSequence(paths, index, onFail, onComplete, token){
+  function playFindNarratorSequence(paths, index, onFail, onComplete, token, onStarted){
     if (token !== audioPlayToken) return;
     if (!paths || index >= paths.length) {
       onComplete();
       return;
     }
     let failed = false;
+    let started = false;
+    const markStarted = () => {
+      if (started) return;
+      started = true;
+      if (typeof onStarted === 'function') onStarted();
+    };
     const audio = new Audio(paths[index]);
     activeAudio = audio;
     audio.preload = 'auto';
     audio.volume = 0.95;
+    audio.addEventListener('playing', markStarted, { once:true });
     audio.addEventListener('error', () => {
       if (token !== audioPlayToken || failed) return;
       failed = true;
@@ -7518,13 +7568,14 @@ assets/audio/granny/watch-this.mp3</pre>
     audio.addEventListener('ended', () => {
       if (token !== audioPlayToken) return;
       if (index + 1 < paths.length) {
-        playFindNarratorSequence(paths, index + 1, onFail, onComplete, token);
+        playFindNarratorSequence(paths, index + 1, onFail, onComplete, token, onStarted);
       } else {
         if (activeAudio === audio) activeAudio = null;
         onComplete();
       }
     }, { once:true });
     const playPromise = audio.play();
+    if (playPromise && typeof playPromise.then === 'function') playPromise.then(markStarted).catch(() => {});
     if (playPromise && typeof playPromise.catch === 'function') {
       playPromise.catch(() => {
         if (token !== audioPlayToken || failed) return;
@@ -7858,7 +7909,7 @@ assets/audio/granny/watch-this.mp3</pre>
   }
 
   document.addEventListener('pointerup', handleDotsAssistedTap, true);
-  function back(target){ return `<button class="gc31Back" type="button" data-back="${esc(target)}">← Back</button>`; }
+  function back(target){ return `<button class="gc31Back" type="button" data-back="${esc(target)}">&larr; Back</button>`; }
   function heading(title, subtitle=''){ return `<h1 class="gc31Heading">${esc(title)}</h1>${subtitle ? `<p class="gc31Sub">${esc(subtitle)}</p>` : ''}`; }
   function step(text){ return `<div class="gc31Step">${esc(text)}</div>`; }
   function screenHeader({ backTarget, stepLabel='', title, instruction='' }){
@@ -8008,35 +8059,6 @@ assets/audio/granny/watch-this.mp3</pre>
     };
     const names = { connect:'Connect Four', cards:'Card Flipping', noughts:'Noughts & Crosses', dots:'Dots & Boxes', find:'Find Grandad', findCharacter:'Find the Character' };
     render(`${screenHeader({ backTarget:'how', stepLabel:'How to play', title:names[which] || 'Game instructions', instruction:'Read the rules below.' })}<div class="gc31Explain">${text[which] || ''}</div>`);
-  }
-  function settingsLegacy(){
-    const text = safeGet('gc31TextSize', safeGet('gcTextSize', 'medium')) || 'medium';
-    const sound = safeGet('gc31Sound', safeGet('gcSound', 'on')) || 'on';
-    const speakTruth = safeGet('gc33SpeakTruth', 'off') || 'off';
-    const musicMode = gc54MusicMode();
-    const musicOn = musicMode !== 'off' && !gc54MusicMuted();
-    const musicVolume = String(Math.round(gc54MusicVolume() * 100));
-    const musicButtons = [
-      ['off', '1. Music Off', 'No background music anywhere.'],
-      ['cheerful', '2. Cheerful', 'Catchy menu tune and light game music.'],
-      ['calm', '3. Calm', 'Softer menu tune and relaxing game loops.'],
-      ['mixed', '4. Mixed', 'Menu theme plus different tracks per game.']
-    ].map(([key, label, note]) => `<button type="button" data-music="${esc(key)}" class="${musicMode === key ? 'active' : ''}">${esc(label)}<small>${esc(note)}</small></button>`).join('');
-    render(`${screenHeader({ backTarget:'home', title:'Settings', instruction:'Adjust readability, voices, move sounds, and background music.' })}<div class="gc31SettingsRow"><h2>Text size</h2><div class="gc31SettingsBtns">
-      <button type="button" data-text="small" class="${text === 'small' ? 'active' : ''}">Small</button>
-      <button type="button" data-text="medium" class="${text === 'medium' ? 'active' : ''}">Medium</button>
-      <button type="button" data-text="large" class="${text === 'large' ? 'active' : ''}">Large</button>
-    </div><p class="gc54MusicNote">Keep this for players who need larger labels and buttons.</p></div><div class="gc31SettingsRow"><h2>Voices and move sounds</h2><div class="gc31SettingsBtns two">
-      <button type="button" data-sound="on" class="${sound === 'on' ? 'active' : ''}">On</button>
-      <button type="button" data-sound="off" class="${sound === 'off' ? 'active' : ''}">Off</button>
-    </div></div><div class="gc31SettingsRow"><h2>Background Music</h2><div class="gc31SettingsBtns">${musicButtons}</div><p class="gc54MusicNote">Music files are optional. If a file is missing, the app simply stays silent and keeps working.</p><div class="gc54MusicFiles">Expected folder: assets/audio/music/<br>menu-cheerful.mp3 · menu-calm.mp3 · game-playful.mp3 · game-calm.mp3 · game-soft.mp3 · game-puzzle.mp3</div></div><div class="gc31SettingsRow"><h2>Music volume</h2><div class="gc31SettingsBtns">
-      <button type="button" data-music-volume="25" class="${musicVolume === '25' ? 'active' : ''}">Low</button>
-      <button type="button" data-music-volume="45" class="${musicVolume === '45' ? 'active' : ''}">Medium</button>
-      <button type="button" data-music-volume="65" class="${musicVolume === '65' ? 'active' : ''}">High</button>
-    </div></div><div class="gc31SettingsRow"><h2>Speak the Truth</h2><div class="gc31SettingsBtns two">
-      <button type="button" data-speak-truth="on" class="${speakTruth === 'on' ? 'active' : ''}">On</button>
-      <button type="button" data-speak-truth="off" class="${speakTruth !== 'on' ? 'active' : ''}">Off</button>
-    </div></div>`);
   }
   function settings(options={}){
     const text = safeGet('gc31TextSize', safeGet('gcTextSize', 'medium')) || 'medium';

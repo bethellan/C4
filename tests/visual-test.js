@@ -142,7 +142,7 @@ async function main() {
       await capture(page, `${viewport.name}-home.png`);
 
       await page.locator('[data-game="connect"]').click();
-      await page.locator('[data-character]').first().click();
+      await page.locator('[data-character]:not([disabled])').first().click();
       await page.waitForTimeout(1050);
       await capture(page, `${viewport.name}-choice.png`);
 
@@ -155,17 +155,17 @@ async function main() {
 
       await page.evaluate(() => window.gc32MenuHome());
       await page.locator('[data-game="noughts"]').click();
-      await page.locator('[data-character]').first().click();
+      await page.locator('[data-character]:not([disabled])').first().click();
       await page.waitForTimeout(1050);
       await page.locator('[data-kind="computer"]').click();
       await capture(page, `${viewport.name}-noughts-opponents.png`);
 
       await page.evaluate(() => window.gc32MenuHome());
       await page.locator('[data-game="noughts"]').click();
-      await page.locator('[data-character]').first().click();
+      await page.locator('[data-character]:not([disabled])').first().click();
       await page.waitForTimeout(1050);
       await page.locator('[data-kind="two"]').click();
-      await page.locator('[data-character]').first().click();
+      await page.locator('[data-character]:not([disabled])').first().click();
       await page.waitForTimeout(1050);
       for (const index of [0, 3, 1, 4, 2]) {
         await page.locator('.noughtsCell').nth(index).click();
