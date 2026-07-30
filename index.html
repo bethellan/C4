@@ -7212,6 +7212,7 @@ assets/audio/granny/watch-this.mp3</pre>
   let route = { game:null, player:null, opponentKind:null, opponent:null, difficulty:null, cardDifficulty:null, findDifficulty:null, dotsDifficulty:null, dotsAiDifficulty:null };
   let findGrandadState = null;
   let findPromptRepeatTimer = null;
+  let findSpeechToken = 0;
   let replayRoute = null;
   let dotsState = null;
   let activeMalcolmInterruption = null;
@@ -7343,11 +7344,19 @@ assets/audio/granny/watch-this.mp3</pre>
     };
     tryPath();
   }
+  function stopAllAppAudioForPageHide(){
+    try { clearFindPromptRepeat(); } catch(e) {}
+    try { if (typeof stopActiveAudio === 'function') stopActiveAudio(); } catch(e) {}
+    try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch(e) {}
+    try { if (colourCopyController && typeof colourCopyController.stopAudio === 'function') colourCopyController.stopAudio(); } catch(e) {}
+    try { gc54StopMusic(); } catch(e) {}
+  }
   function gc54HandlePageHidden(){
-    if (document.hidden) gc54StopMusic();
+    if (document.hidden) stopAllAppAudioForPageHide();
   }
   document.addEventListener('visibilitychange', gc54HandlePageHidden);
-  window.addEventListener('pagehide', gc54StopMusic);
+  window.addEventListener('pagehide', stopAllAppAudioForPageHide);
+  window.addEventListener('beforeunload', stopAllAppAudioForPageHide);
 
   function gc54UnlockMusic(){
     if (gc54MusicUnlocked) {
@@ -7796,6 +7805,7 @@ assets/audio/granny/watch-this.mp3</pre>
     const fallback = () => {
       if (completed) return;
       clearFallbackTimer();
+      try { if (typeof stopActiveAudio === 'function') stopActiveAudio(); } catch(e) {}
       findSpeakFallback(fallbackText, complete);
     };
     if (!choices || !choices.length) {
@@ -7859,9 +7869,10 @@ assets/audio/granny/watch-this.mp3</pre>
     }
   }
   function findSpeak(text, onComplete, eventKey, targetKey){
+    const speechToken = ++findSpeechToken;
     let completed = false;
     const complete = () => {
-      if (completed) return;
+      if (speechToken !== findSpeechToken || completed) return;
       completed = true;
       if (typeof onComplete === 'function') onComplete();
     };
@@ -7880,6 +7891,7 @@ assets/audio/granny/watch-this.mp3</pre>
     findSpeak(text || '', onComplete, eventKey, targetKey);
   };
   function clearFindPromptRepeat(){
+    findSpeechToken += 1;
     if (findPromptRepeatTimer) {
       try { clearTimeout(findPromptRepeatTimer); } catch(e) {}
       findPromptRepeatTimer = null;
@@ -8273,7 +8285,14 @@ assets/audio/granny/watch-this.mp3</pre>
       normal:{ label:'Normal', flash:600, gap:210, min:320 },
       fast:{ label:'Fast', flash:470, gap:160, min:230 }
     };
-    const melody = ['red','yellow','blue','green','green','blue','yellow','red','blue','red','green','yellow'];
+    const bonusTunes = [
+      { name:'Rainbow Run', steps:['red','yellow','blue','green','green','blue','yellow','red','blue','red','green','yellow'] },
+      { name:'Up and Down', steps:['red','yellow','blue','green','blue','yellow','red','green','red','blue','yellow','green'] },
+      { name:'Happy Bounce', steps:['green','blue','yellow','red','yellow','blue','green','green','red','yellow','blue','green'] },
+      { name:'Little March', steps:['red','red','blue','blue','yellow','green','yellow','green','red','blue','green','yellow'] },
+      { name:'Star Steps', steps:['yellow','green','blue','red','blue','green','yellow','yellow','red','blue','green','red'] }
+    ];
+    const emptySequenceTune = ['red','yellow','blue','green','green','blue','yellow','red','blue','red','green','yellow'].concat(['yellow','green','blue','red']);
     const stageRoundSize = 4;
     const stageSpeedFactor = .92;
     const colourToneMs = 280;
@@ -8507,11 +8526,12 @@ assets/audio/granny/watch-this.mp3</pre>
       const token = ++bonusToken;
       accepting = false;
       clearFirstRepeat();
+      const selectedTune = bonusTunes[Math.floor(Math.random() * bonusTunes.length)] || bonusTunes[0];
       statusTitle.textContent = kind === 'empty' ? 'No sequence yet' : 'Bonus tune!';
-      statusSub.textContent = kind === 'empty' ? 'Here is a quick colour tune.' : 'A little music session.';
+      statusSub.textContent = kind === 'empty' ? 'Here is a quick colour tune.' : selectedTune.name;
       setCentre('Listen');
       updateUI();
-      const tune = kind === 'empty' ? melody.concat(melody.slice().reverse()) : melody;
+      const tune = kind === 'empty' ? emptySequenceTune : selectedTune.steps;
       for (const colour of tune) {
         if (token !== bonusToken) return;
         await flash(colour, kind === 'empty' ? 210 : 250);
@@ -8656,6 +8676,10 @@ assets/audio/granny/watch-this.mp3</pre>
       });
       showSetup();
     }
+    function stopAudio(){
+      cancelAction();
+      try { if (audioCtx && typeof audioCtx.suspend === 'function') audioCtx.suspend(); } catch(e) {}
+    }
     function cleanup(){
       cancelAction();
       closeModal();
@@ -8663,7 +8687,7 @@ assets/audio/granny/watch-this.mp3</pre>
       if (audioCtx && typeof audioCtx.close === 'function') { try { audioCtx.close(); } catch(e) {} }
       audioCtx = null;
     }
-    return { init, cleanup };
+    return { init, cleanup, stopAudio };
   }
 
   function home(){
